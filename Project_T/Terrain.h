@@ -31,11 +31,12 @@ public:
 	Terrain();
 	~Terrain();
 
-	bool loadHeightMap(char* url);
-	void createBuffers();
+	bool loadHeightMap();
+	void createBuffers(ID3D11Device* device);
 
 	//Get
-	DirectX::XMFLOAT3 getVertexPos(int index) const;
+	int getNrOfFaces(void) const;
+	int getNrOfVertices(void) const;
 	ID3D11Buffer* getVertexBuffer();
 	ID3D11Buffer* getIndexBuffer();
 

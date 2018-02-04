@@ -3,12 +3,23 @@
 
 #include <d3d11.h>
 #include <d3dcompiler.h>
+#include<DirectXMath.h>
 
 class Geometry {
 
 private:
 
 	ID3D11GeometryShader* shader;
+	ID3D11Buffer* constBuffer;
+
+	struct Matrix {
+
+		DirectX::XMMATRIX wvp;
+
+	};
+
+	Matrix mat;
+
 
 public:
 
@@ -16,9 +27,16 @@ public:
 	~Geometry();
 
 	void createShader(ID3D11Device* device);
+	void createConstBuffer(ID3D11Device* device);
+	void mapConstBuffer(ID3D11DeviceContext* dContext);
+
+	//Handle matrix
+	void setMatrixValues(DirectX::XMMATRIX view, int wWidth, int wHeight);
+	void updateMatrixValues(DirectX::XMMATRIX view, int wWidth, int wHeight);
 
 	//Get
 	ID3D11GeometryShader* getShader(void);
+	ID3D11Buffer* getConstBuffer(void);
 
 };
 

@@ -53,7 +53,7 @@ void Camera::getInput(double time) {
 	this->mouse->GetDeviceState(sizeof(DIMOUSESTATE), &currentMouseState);
 
 	//Update speed value
-	this->speed = 1.0f * 0.0005f;
+	this->speed = 1.0f * 0.005f;
 	bool x = false, z = false;
 
 	//Keyboard input
@@ -74,7 +74,7 @@ void Camera::getInput(double time) {
 
 		this->moveZ += this->speed;
 		z = true;
-		
+
 	}
 	else if (keyboardState[DIK_S] & 0x80) {
 
@@ -116,7 +116,7 @@ void Camera::update() {
 
 	//Rotation matrix, rotates X, Y & Z
 	this->camRotation = DirectX::XMMatrixRotationRollPitchYaw(this->pitch, this->yaw, 0.0f);
-	
+
 	//Transforms defaultForward vector with rotation matrix
 	this->camTarget = DirectX::XMVector3TransformCoord({ 0.0f, 0.0f, 1.0f, 0.0f }, this->camRotation);
 
@@ -165,9 +165,9 @@ bool Camera::initDI(HINSTANCE hInst, HWND wHandle) {
 
 		//Create Keyboard
 		hr = this->dI->CreateDevice(
-		GUID_SysKeyboard,	//GUID Flag
-		&this->keyboard,	//Device to use
-		NULL				//COM
+			GUID_SysKeyboard,	//GUID Flag
+			&this->keyboard,	//Device to use
+			NULL				//COM
 		);
 
 		if (FAILED(hr)) {
@@ -208,7 +208,7 @@ bool Camera::initDI(HINSTANCE hInst, HWND wHandle) {
 
 }
 
-DirectX::XMMATRIX Camera::getView(void) const{
+DirectX::XMMATRIX Camera::getView(void) const {
 
 	return this->camView;
 

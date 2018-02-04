@@ -2,7 +2,6 @@
 
 Vertex::Vertex() {
 
-	this->buffer = nullptr;
 	this->shader = nullptr;
 	this->inputLayout = nullptr;
 	this->nrOfVertices = 0;
@@ -11,7 +10,6 @@ Vertex::Vertex() {
 
 Vertex::~Vertex() {
 
-	this->buffer->Release();
 	this->shader->Release();
 	this->inputLayout->Release();
 
@@ -35,8 +33,8 @@ void Vertex::createShader(ID3D11Device* device) {
 	device->CreateVertexShader(pVS->GetBufferPointer(), pVS->GetBufferSize(), nullptr, &this->shader);
 
 	D3D11_INPUT_ELEMENT_DESC inputDesc[] = {
-		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0 , D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
 	device->CreateInputLayout(inputDesc, ARRAYSIZE(inputDesc), pVS->GetBufferPointer(), pVS->GetBufferSize(), &this->inputLayout);
@@ -47,50 +45,11 @@ void Vertex::createShader(ID3D11Device* device) {
 
 void Vertex::createTriangleData(ID3D11Device* device) {
 
-	//Define the triangle vertices
-	struct TriangleVertex {
+	//Load in values from bitmap
+	this->terrain.loadHeightMap();
 
-		float x, y, z;
-		float r, g, b;
-
-	};
-
-	this->nrOfVertices = 6;
-	TriangleVertex triangleVertices[6]{
-
-		//Triangle 1
-		-0.25f, 0.25f, 0.0f,//v0 pos
-		1.0f, 0.0f, 0.0f, 	//v0 color
-
-		0.25f, -0.25f, 0.0f,//v1 pos
-		0.0f, 1.0f,	0.0f,	//v1 color
-
-		-0.25f, -0.25f, 0.0f,//v2 pos
-		0.0f, 0.0f,	1.0f,	//v2 color
-
-		//Triangle 2
-		0.25f, -0.25f, 0.0f,//v0 pos
-		1.0f, 1.0f,	0.0f	//v0 color
-
-		- 0.25f, 0.25f, 0.0f,//v1 pos
-		0.0f, 1.0f, 1.0f,	//v1 color
-
-		0.25f, 0.25f, 0.0f, //v2 pos
-		1.0f, 0.0f, 1.0f	//v2 color
-
-	};
-
-	//Create buffer desc
-	D3D11_BUFFER_DESC bDesc;
-	memset(&bDesc, 0, sizeof(bDesc));
-	bDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bDesc.Usage = D3D11_USAGE_DEFAULT;
-	bDesc.ByteWidth = sizeof(triangleVertices);
-
-	//Create data
-	D3D11_SUBRESOURCE_DATA data;
-	data.pSysMem = triangleVertices;
-	device->CreateBuffer(&bDesc, &data, &this->buffer);
+	//Create vertex & index buffer and store vertex info/index info
+	this->terrain.createBuffers(device);
 
 }
 
@@ -102,13 +61,25 @@ ID3D11VertexShader* Vertex::getShader(void) {
 
 int Vertex::getNrOfVertex(void) const{
 
-	return this->nrOfVertices;
+	return this->terrain.getNrOfVertices();
 
 }
 
-ID3D11Buffer* Vertex::getBuffer(void) {
+int Vertex::getNrOfFaces(void) const {
 
-	return this->buffer;
+	return this->terrain.getNrOfFaces();
+
+}
+
+ID3D11Buffer* Vertex::getVertexBuffer(void) {
+
+	return this->terrain.getVertexBuffer();
+
+}
+
+ID3D11Buffer* Vertex::getIndexBuffer(void) {
+
+	return this->terrain.getIndexBuffer();
 
 }
 

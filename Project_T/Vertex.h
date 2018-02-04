@@ -1,6 +1,8 @@
 #ifndef VERTEX_H
 #define VERTEX_H
 
+#include"Terrain.h"
+
 #include <d3d11.h>
 #include <d3dcompiler.h>
 
@@ -8,9 +10,10 @@ class Vertex {
 
 private:
 
-	ID3D11Buffer* buffer;
 	ID3D11VertexShader* shader;
 	ID3D11InputLayout* inputLayout;
+
+	Terrain terrain;
 
 	int nrOfVertices;
 
@@ -25,7 +28,10 @@ public:
 	//Get
 	ID3D11VertexShader* getShader(void);
 	int getNrOfVertex(void) const;
-	ID3D11Buffer* getBuffer(void);
+	int getNrOfFaces(void) const;
+	//ID3D11Buffer* getBuffer(void);
+	ID3D11Buffer* getVertexBuffer(void);
+	ID3D11Buffer* getIndexBuffer(void);
 	ID3D11InputLayout* getInputLayout(void);
 
 };

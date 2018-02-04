@@ -1,5 +1,4 @@
 #include <windows.h>
-#include<iostream>
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment (lib, "d3dcompiler.lib")
@@ -8,6 +7,7 @@
 #include"Vertex.h"
 #include"Geometry.h"
 #include"Pixel.h"
+#include"Camera.h"
 
 const LONG WIDTH = 1200;
 const LONG HEIGHT = 700;
@@ -15,31 +15,30 @@ const LONG HEIGHT = 700;
 HWND initWindow(HINSTANCE hInst);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 void SetViewport(ID3D11DeviceContext* dContext);
-void Render(ID3D11DeviceContext* dContext, ID3D11VertexShader* vS, int nrOfVertex,
-	ID3D11Buffer* vBuffer, ID3D11InputLayout* inputLayout, ID3D11RenderTargetView* backBufferRTV,
-	ID3D11GeometryShader* gS, ID3D11PixelShader* pS);
+void Render(Device* device, Vertex* vertex, Geometry* geo, Pixel* pixel, Camera* cam);
 
 int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPWSTR lpCmdLine, int nCmdShow) {
-
-	//Detect memoryleaks
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
 	MSG msg = { 0 };
 
 	//Create window
-	HWND wndHandle = initWindow(hInst);
+	HWND wHandle = initWindow(hInst);
 
-	if (wndHandle) {
+	if (wHandle) {
 
 		//Create objects
 		Device device;
+
 		Vertex vertex;
 		Geometry geometry;
 		Pixel pixel;
+
+		Camera cam;
+
 		HRESULT hr = NULL;
 
 		//Create device object(device, deviceContext, swapChain, backBufferRVT)
-		hr = device.createContext(wndHandle);
+		hr = device.createContext(wHandle, (int)WIDTH, (int)HEIGHT);
 
 		if (FAILED(hr)) {
 
@@ -58,8 +57,17 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPWSTR lpCmdLine, int 
 		//Create triangle vertices
 		vertex.createTriangleData(device.getDevice());
 
+		//Create constant buffer
+		geometry.createConstBuffer(device.getDevice());
+
+		//Create camera
+		cam.initDI(hInst, wHandle);
+
+		//Set values to WVP matrix(Pass window width/height)
+		geometry.setMatrixValues(cam.getView(), (int)WIDTH, (int)HEIGHT);
+
 		//Sets state of window
-		ShowWindow(wndHandle, nCmdShow);
+		ShowWindow(wHandle, nCmdShow);
 
 		//Updates the program
 		while (WM_QUIT != msg.message) {
@@ -73,19 +81,13 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPWSTR lpCmdLine, int 
 			else {
 
 				//Render
-				Render(device.getDeviceContext(),
-					vertex.getShader(),
-					vertex.getNrOfVertex(),
-					vertex.getBuffer(),
-					vertex.getInputLayout(),
-					device.getBackBufferRTV(),
-					geometry.getShader(),
-					pixel.getShader());
+				Render(&device, &vertex, &geometry, &pixel, &cam);
 
 				//Swap front & back buffers
 				device.getSwapChain()->Present(0, 0);
 
 			}
+
 		}
 	}
 
@@ -93,36 +95,49 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPWSTR lpCmdLine, int 
 
 }
 
-void Render(ID3D11DeviceContext* dContext, ID3D11VertexShader* vS, int nrOfVertex,
-	ID3D11Buffer* vBuffer, ID3D11InputLayout* inputLayout, ID3D11RenderTargetView* backBufferRTV,
-	ID3D11GeometryShader* gS, ID3D11PixelShader* pS) {
+void Render(Device* device, Vertex* vertex, Geometry* geo, Pixel* pixel, Camera* cam) {
 
 	//Set a default color
 	float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 	//Set rendering state
-	dContext->VSSetShader(vS, nullptr, 0);
-	dContext->HSSetShader(nullptr, nullptr, 0);
-	dContext->DSSetShader(nullptr, nullptr, 0);
-	dContext->GSSetShader(gS, nullptr, 0);
-	dContext->PSSetShader(pS, nullptr, 0);
+	device->getDeviceContext()->VSSetShader(vertex->getShader(), nullptr, 0);
+	device->getDeviceContext()->HSSetShader(nullptr, nullptr, 0);
+	device->getDeviceContext()->DSSetShader(nullptr, nullptr, 0);
+	device->getDeviceContext()->GSSetShader(geo->getShader(), nullptr, 0);
+	device->getDeviceContext()->PSSetShader(pixel->getShader(), nullptr, 0);
 
 	//Set vertex size and offset
-	UINT32 vSize = sizeof(float) * nrOfVertex;
+	UINT32 vSize = sizeof(float) * 6;
 	UINT32 offset = 0;
 
-	//Set vertex buffer and inputLayout
-	dContext->IASetVertexBuffers(0, 1, &vBuffer, &vSize, &offset);
-	dContext->IASetInputLayout(inputLayout);
+	//Update camera(view matrix)
+	cam->getInput(0.0f);
+	cam->update();
+
+	//Update wvp matrix
+	geo->updateMatrixValues(cam->getView(), (int)WIDTH, (int)HEIGHT);
+
+	//Set vertex & index buffer
+	//Create temp buffer for setting vertex buffer(cant pass it directly from object to functions for some reason)
+	ID3D11Buffer* tempBuffer = vertex->getVertexBuffer();
+	device->getDeviceContext()->IASetVertexBuffers(0, 1, &tempBuffer, &vSize, &offset);
+	device->getDeviceContext()->IASetIndexBuffer(vertex->getIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
+	
+	device->getDeviceContext()->IASetInputLayout(vertex->getInputLayout());
+
+	//Map constant buffer
+	geo->mapConstBuffer(device->getDeviceContext());
 
 	//Set primitive type
-	dContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	device->getDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	//Clear screen
-	dContext->ClearRenderTargetView(backBufferRTV, clearColor);
+	device->getDeviceContext()->ClearDepthStencilView(device->getDepthStencil(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	device->getDeviceContext()->ClearRenderTargetView(device->getBackBufferRTV(), clearColor);
 
 	//Draw
-	dContext->Draw(nrOfVertex, 0);
+	device->getDeviceContext()->DrawIndexed((vertex->getNrOfFaces() * 3), 0, 0);
 
 }
 

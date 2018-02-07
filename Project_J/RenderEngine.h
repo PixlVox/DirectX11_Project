@@ -1,22 +1,19 @@
-#pragma once
-#include "Drawable.h"
+#ifndef RenderEngine_H
+#define RenderEngine_H
+
+#include "Quad.h"
+#include "Geometry.h"
+#include "Terrain.h"
+#include "Settings.h"
 #include "Camera.h"
-#include "VSShader.h"
-#include "GSShader.h"
-#include "PSShader.h"
-
-#include <DirectXMath.h>
-#include <Windows.h>
-#include <d3d11.h>
-#include <d3dcompiler.h>
+#include "DeferredShaders.h"
+#include <windows.h>
 #include <vector>
+#include "Light.h"
 
-
-#pragma comment (lib, "d3d11.lib")
-#pragma comment (lib, "d3dcompiler.lib")
 /*
 
-Själva motorn som ritar ut objekten 
+Engine using deferred rendering
 
 */
 
@@ -26,56 +23,99 @@ class RenderEngine
 { 
 private:
 	//Variables
-	XMMATRIX xm_view;
-	XMMATRIX xm_projection;
-	XMMATRIX xm_orthoProj;
-	XMFLOAT3X3 xmf_view;
-	XMFLOAT3X3 xmf_projection;
-
 
 	bool useRastBackCull = true;
 
-	const int HEIGHT = 680;
-	const int WIDTH = 680;
-	const int VIEW_COUNT = 3;
-	Camera camera;
+	int HEIGHT;
+	int WIDTH;
+	float nearZ = 0.1f;
+	float farZ = 10000.0f;
+	const int VIEW_COUNT = 2;
 
-	HWND windowHandle;
+	enum pass{Geometry_pass, Lightning_pass};
+
+	//Transformation matrixes
+	struct matrix_wvp
+	{
+		XMMATRIX world;
+		XMMATRIX view;
+		XMMATRIX projection;
+		XMMATRIX wvp;
+	};
+	matrix_wvp m_wvp;
+
+	//DeferredQuad
+	Quad quad;
+
+	//FPS
+	Camera camera;
+	//deferred shaders
+	DeferredShaders deferred_shading;
+	Light lights;
+
+
+	float black[4];
+
 private:
 	//D3D11 data
+
 	IDXGISwapChain * swapChain;
 	ID3D11Device * device;
 	ID3D11DeviceContext * deviceContext;
 
+	//RT Krakens
 	std::vector<ID3D11RenderTargetView*> RTViews;
 	std::vector<ID3D11ShaderResourceView*> SRViews;
-	std::vector<ID3D11Texture2D*> RTTextures; //RenderTargetTextures
+	std::vector<ID3D11Texture2D*> RTTextures;
 
-	ID3D11RasterizerState* RSState;
-	ID3D11DepthStencilState* DSState;
-	ID3D11Texture2D* depthStencil_texture;
-	ID3D11DepthStencilView* DSView;
+	ID3D11ShaderResourceView* null[2] = { nullptr, nullptr };
+
+	//backbuffer
+	ID3D11Texture2D * back_buffer_texture;
+	ID3D11RenderTargetView * back_buffer_view;
+
+	ID3D11RasterizerState * RSState;
+
+	ID3D11DepthStencilState * DSState;
+	ID3D11Texture2D * depthStencil_texture;
+	ID3D11DepthStencilView * depthStencilView;
+
 	D3D11_VIEWPORT view_port;
 
+	ID3D11Buffer * cb_lights;	
+	ID3D11Buffer * cb_matrixes;
+
 private:
-	//functions
-	void createShaders();
-	bool createWindow(HINSTANCE hInstance, int nCmdShow);
-	bool initiateEngine();
+	//start-up functions
+	bool initiateEngine(HWND handle);
 	bool setupRTVs();
 	void setupVP();
 	bool setupDepthStencilBuffer();
 	bool setupRasterizer();
-	bool setCBs();
-	void windowProc();
+	bool createCBs();
 	void setupOMS();
 
+
+	//Render functions
+	void updateMatrixes();
+	void updateShaders(int in_pass);
+	void updateBuffers(ID3D11Buffer* in_VertexBuffer, ID3D11Buffer* in_IndexBuffer, float size_of_vertex);
+	void clearRT();
+	void mapCBs();
+	void layoutTopology(int in_topology, int in_layout);
+	void setDrawCall(int nr_verticies);
+	void setQuad();
 public:
 
-	RenderEngine(HINSTANCE hInstance, int nCmdShow);
+	RenderEngine(HWND wndHandle, HINSTANCE hInstance, int WIDTH, int HEIGHT);
 	~RenderEngine();
 
-	void Draw(Drawable* objectToRender); // draw called object
-	void loadViewMatrix(XMFLOAT3X3 new_view);
-	void loadProjectionMatrix(XMFLOAT3X3 new_projection);
+	void setMatrixes(XMMATRIX world);
+	void update();
+	void Draw(Terrain * in_terrain); // draw called object
+	void Draw(Geometry * in_geometry);
+
+	ID3D11Device* getDevice();
 };
+
+#endif

@@ -3,10 +3,11 @@
 
 #include <DirectXMath.h>
 #include <d3d11.h>
-#include<stdio.h>
-#include<vector>
+#include <stdio.h>
+#include <vector>
+#include "Drawable.h"
 
-class Terrain {
+class Terrain : public Drawable {
 
 private:
 
@@ -17,28 +18,44 @@ private:
 		DirectX::XMFLOAT3* vertexData;
 
 	};
+	//Vertex structure
+	struct Vertex {
+
+		DirectX::XMFLOAT3 pos;
+		DirectX::XMFLOAT3 normal;
+
+	};
 
 	HeightMap hM;
 	int nrOfFaces;
 	int nrOfVertices;
 
+	int t_topology;
+	int t_layout;
+
 	//Buffers
 	ID3D11Buffer* vBuffer;
 	ID3D11Buffer* iBuffer;
 
+	ID3D11Device * device;
+
 public:
 
-	Terrain();
+	Terrain(ID3D11Device * device);
 	~Terrain();
 
-	bool loadHeightMap(char* url);
+	bool loadHeightMap();
 	void createBuffers();
 
 	//Get
-	DirectX::XMFLOAT3 getVertexPos(int index) const;
+	int getNrOfFaces(void) const;
+	int getNrOfVertices(void);
 	ID3D11Buffer* getVertexBuffer();
 	ID3D11Buffer* getIndexBuffer();
-
+	float getSizeOfVertex();
+	int getTopology();
+	int getLayout();
+	XMMATRIX getWorldMatrix() const;
 };
 
 #endif // !TERRAIN_H

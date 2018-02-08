@@ -4,6 +4,10 @@ Terrain::Terrain() {
 
 	this->nrOfFaces = 0;
 	this->nrOfVertices = 0;
+	this->valuesPerVertex = 0;
+
+	this->scalingValue = 400.0f;
+	this->offsetValue = -1500.0f;
 
 	this->hM.height = 0;
 	this->hM.width = 0;
@@ -75,7 +79,7 @@ bool Terrain::loadHeightMap() {
 
 		//Read data from greyscale image, only need value from one color channel
 		int k = 0;
-		float heightFactor = 10.0f;
+		float heightFactor = 75.0f;
 
 		//Read imageData into heigthMap array
 		for (int j = 0; j < hM.height; j++) {
@@ -115,6 +119,7 @@ void Terrain::createBuffers(ID3D11Device* device) {
 		DirectX::XMFLOAT3 normal;
 
 	};
+	this->valuesPerVertex = 6;
 
 	//Set number of vertices and faces
 	this->nrOfVertices = this->hM.height * this->hM.width;
@@ -304,6 +309,12 @@ int Terrain::getNrOfVertices(void) const {
 
 }
 
+int Terrain::getValuesPerVertex(void) const{
+
+	return this->valuesPerVertex;
+
+}
+
 ID3D11Buffer* Terrain::getVertexBuffer() {
 
 	return this->vBuffer;
@@ -313,5 +324,26 @@ ID3D11Buffer* Terrain::getVertexBuffer() {
 ID3D11Buffer* Terrain::getIndexBuffer() {
 
 	return this->iBuffer;
+
+}
+
+float Terrain::getHeightValueAtPos(float x, float z) const{
+
+	float height = 0.0f;
+	bool stop = false;
+
+	//check bounds of terrain
+	if (x > this->offsetValue && x < (this->hM.width * this->scalingValue) + this->offsetValue &&
+		z > this->offsetValue && z < (this->hM.height * this->scalingValue) + this->offsetValue) {
+
+		//Find a near vertex point
+		int xIndex = (std::abs(this->offsetValue - x)) / this->scalingValue;
+		int zIndex = (std::abs(this->offsetValue - z)) / this->scalingValue;
+
+		height = (this->hM.vertexData[(this->hM.height * xIndex) + zIndex].y * this->scalingValue) + this->offsetValue;
+
+	}
+
+	return height;
 
 }

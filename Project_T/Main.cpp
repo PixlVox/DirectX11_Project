@@ -63,9 +63,6 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPWSTR lpCmdLine, int 
 		//Create camera
 		cam.initDI(hInst, wHandle);
 
-		//Set values to WVP matrix(Pass window width/height)
-		geometry.setMatrixValues(cam.getView(), (int)WIDTH, (int)HEIGHT);
-
 		//Sets state of window
 		ShowWindow(wHandle, nCmdShow);
 
@@ -108,12 +105,12 @@ void Render(Device* device, Vertex* vertex, Geometry* geo, Pixel* pixel, Camera*
 	device->getDeviceContext()->PSSetShader(pixel->getShader(), nullptr, 0);
 
 	//Set vertex size and offset
-	UINT32 vSize = sizeof(float) * 6;
+	UINT32 vSize = sizeof(float) * vertex->getValuesPerVertex();
 	UINT32 offset = 0;
 
 	//Update camera(view matrix)
 	cam->getInput(0.0f);
-	cam->update();
+	cam->update(vertex->getHeightValueAtPos(cam->getX(), cam->getZ()));
 
 	//Update wvp matrix
 	geo->updateMatrixValues(cam->getView(), (int)WIDTH, (int)HEIGHT);

@@ -18,9 +18,13 @@ private:
 
 	};
 
+	float scalingValue;
+	float offsetValue;
+
 	HeightMap hM;
 	int nrOfFaces;
 	int nrOfVertices;
+	int valuesPerVertex;
 
 	//Buffers
 	ID3D11Buffer* vBuffer;
@@ -37,6 +41,8 @@ public:
 	//Get
 	int getNrOfFaces(void) const;
 	int getNrOfVertices(void) const;
+	int getValuesPerVertex(void) const;
+	float getHeightValueAtPos(float x, float z) const;
 	ID3D11Buffer* getVertexBuffer();
 	ID3D11Buffer* getIndexBuffer();
 

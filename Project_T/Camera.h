@@ -16,6 +16,7 @@ private:
 	//Camera
 	DirectX::XMVECTOR camForward;
 	DirectX::XMVECTOR camRight;
+	DirectX::XMVECTOR camY;
 	DirectX::XMVECTOR camTarget;
 	DirectX::XMVECTOR camUp;
 	DirectX::XMVECTOR position;
@@ -44,11 +45,13 @@ public:
 	~Camera();
 
 	void getInput(double time);
-	void update();
+	void update(float heightValue);
 	bool initDI(HINSTANCE hInst, HWND wHandle);
 
 	//Get
 	DirectX::XMMATRIX getView(void) const;
+	float getX(void) const;
+	float getZ(void) const;
 
 };
 

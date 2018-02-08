@@ -5,6 +5,7 @@ Vertex::Vertex() {
 	this->shader = nullptr;
 	this->inputLayout = nullptr;
 	this->nrOfVertices = 0;
+	this->valuesPerVertex = 0;
 
 }
 
@@ -50,6 +51,7 @@ void Vertex::createTriangleData(ID3D11Device* device) {
 
 	//Create vertex & index buffer and store vertex info/index info
 	this->terrain.createBuffers(device);
+	this->valuesPerVertex = this->terrain.getValuesPerVertex();
 
 }
 
@@ -68,6 +70,18 @@ int Vertex::getNrOfVertex(void) const{
 int Vertex::getNrOfFaces(void) const {
 
 	return this->terrain.getNrOfFaces();
+
+}
+
+int Vertex::getValuesPerVertex(void) const{
+
+	return this->valuesPerVertex;
+
+}
+
+float Vertex::getHeightValueAtPos(float x, float z) {
+
+	return this->terrain.getHeightValueAtPos(x, z);
 
 }
 

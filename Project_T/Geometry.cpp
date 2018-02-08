@@ -61,27 +61,15 @@ void Geometry::createConstBuffer(ID3D11Device* device) {
 
 }
 
-void Geometry::setMatrixValues(DirectX::XMMATRIX view, int wWidth, int wHeight) {
-
-	//World (Scale by 100x and start pos at 0,0,0)
-	DirectX::XMMATRIX world = DirectX::XMMatrixIdentity();
-	world = (DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixTranslation(-100.0f, -100.0f, -100.0f));
-
-	//Projection
-	DirectX::XMMATRIX proj = DirectX::XMMatrixPerspectiveFovLH((DirectX::XM_PI * 0.45f), (wWidth / wHeight), 0.1f, 1000.0f);
-
-	//Set values to wvp and transpose
-	mat.wvp = DirectX::XMMatrixTranspose(world * view * proj);
-
-}
-
 void Geometry::updateMatrixValues(DirectX::XMMATRIX view, int wWidth, int wHeight) {
-
+	//World offset pos by -250 and scale by 20x
 	DirectX::XMMATRIX world = DirectX::XMMatrixIdentity();
-	world = (DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixTranslation(-100.0f, -100.0f, -100.0f));
-	
-	DirectX::XMMATRIX proj = DirectX::XMMatrixPerspectiveFovLH((DirectX::XM_PI * 0.45f), (wWidth / wHeight), 0.1f, 1000.0f);
+	world = DirectX::XMMatrixScaling(400, 400, 400) *  DirectX::XMMatrixTranslation(-1500.0f, -1500.0f, -1500.0f);
 
+	//Projection matrix
+	DirectX::XMMATRIX proj = DirectX::XMMatrixPerspectiveFovLH((DirectX::XM_PI * 0.45f), (wWidth / wHeight), 0.1f, 10000.0f);
+
+	//World * View * Projection Matrix
 	mat.wvp = DirectX::XMMatrixTranspose(world * view * proj);
 
 }

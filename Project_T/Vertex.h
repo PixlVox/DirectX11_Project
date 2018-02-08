@@ -16,6 +16,7 @@ private:
 	Terrain terrain;
 
 	int nrOfVertices;
+	int valuesPerVertex;
 
 public:
 
@@ -29,7 +30,8 @@ public:
 	ID3D11VertexShader* getShader(void);
 	int getNrOfVertex(void) const;
 	int getNrOfFaces(void) const;
-	//ID3D11Buffer* getBuffer(void);
+	int getValuesPerVertex(void) const;
+	float getHeightValueAtPos(float x, float z);
 	ID3D11Buffer* getVertexBuffer(void);
 	ID3D11Buffer* getIndexBuffer(void);
 	ID3D11InputLayout* getInputLayout(void);

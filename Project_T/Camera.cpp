@@ -6,9 +6,10 @@ Camera::Camera() {
 	this->camForward = { 0.0f, 0.0f, 1.0f, 0.0f };
 	this->camRight = { 1.0f, 0.0f, 0.0f, 0.0f };
 	this->camUp = { 0.0f, 1.0f, 0.0f, 0.0f };
+	this->camY = { 0.0f, 1.0f, 0.0f, 0.0f };
 
 	this->camTarget = { 0.0f, 0.0f, 0.0f, 0.0f };
-	this->position = { 0.0f, 0.0f, -2.0f, 0.0f };
+	this->position = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 	this->camRotation = DirectX::XMMatrixIdentity();
 	this->camView = DirectX::XMMatrixIdentity();
@@ -52,9 +53,20 @@ void Camera::getInput(double time) {
 	this->keyboard->GetDeviceState(sizeof(keyboardState), (LPVOID)&keyboardState);
 	this->mouse->GetDeviceState(sizeof(DIMOUSESTATE), &currentMouseState);
 
-	//Update speed value
-	this->speed = 1.0f * 0.005f;
+	//Store directions
 	bool x = false, z = false;
+
+	//Update speed value
+	if (keyboardState[DIK_LSHIFT] & 0x80) {
+
+		this->speed = 15.0f * 0.005f;
+
+	}
+	else {
+
+		this->speed = 5.0f * 0.005f;
+
+	}
 
 	//Keyboard input
 	if (keyboardState[DIK_A] & 0x80) {
@@ -112,7 +124,7 @@ void Camera::getInput(double time) {
 
 }
 
-void Camera::update() {
+void Camera::update(float heightValue) {
 
 	//Rotation matrix, rotates X, Y & Z
 	this->camRotation = DirectX::XMMatrixRotationRollPitchYaw(this->pitch, this->yaw, 0.0f);
@@ -123,12 +135,22 @@ void Camera::update() {
 	//Normalize camTarget vector
 	this->camTarget = DirectX::XMVector3Normalize(this->camTarget);
 
+	//Rotation matrix around Y
+	DirectX::XMMATRIX matRotY = DirectX::XMMatrixRotationY(this->yaw);
+
 	//Transform camera vectors with rotation matrix
-	this->camRight = DirectX::XMVector3TransformCoord({ 1.0f, 0.0f, 0.0f, 0.0f }, this->camRotation);
-	this->camForward = DirectX::XMVector3TransformCoord({ 0.0f, 0.0f, 1.0f, 0.0f }, this->camRotation);
-	this->camUp = DirectX::XMVector3Cross(this->camForward, this->camRight);
+	this->camRight = DirectX::XMVector3TransformCoord({ 1.0f, 0.0f, 0.0f, 0.0f }, matRotY);
+	this->camForward = DirectX::XMVector3TransformCoord({ 0.0f, 0.0f, 1.0f, 0.0f }, matRotY);
+	this->camUp = DirectX::XMVector3TransformCoord(this->camUp, matRotY);
 
 	//Apply movement to the camera
+	if (heightValue != DirectX::XMVectorGetY(this->position)) {
+
+		float heightPos = (heightValue - DirectX::XMVectorGetY(this->position)) + 50.0f;
+		this->position = DirectX::XMVectorAdd(DirectX::XMVectorScale(this->camY, heightPos), this->position);
+
+	}
+
 	this->position = DirectX::XMVectorAdd(DirectX::XMVectorScale(this->camRight, this->moveX), this->position);
 	this->position = DirectX::XMVectorAdd(DirectX::XMVectorScale(this->camForward, this->moveZ), this->position);
 
@@ -211,5 +233,17 @@ bool Camera::initDI(HINSTANCE hInst, HWND wHandle) {
 DirectX::XMMATRIX Camera::getView(void) const {
 
 	return this->camView;
+
+}
+
+float Camera::getX(void) const{
+
+	return DirectX::XMVectorGetX(this->position);
+
+}
+
+float Camera::getZ(void) const{
+
+	return DirectX::XMVectorGetZ(this->position);
 
 }

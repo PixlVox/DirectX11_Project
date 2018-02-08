@@ -31,7 +31,6 @@ public:
 	void mapConstBuffer(ID3D11DeviceContext* dContext);
 
 	//Handle matrix
-	void setMatrixValues(DirectX::XMMATRIX view, int wWidth, int wHeight);
 	void updateMatrixValues(DirectX::XMMATRIX view, int wWidth, int wHeight);
 
 	//Get

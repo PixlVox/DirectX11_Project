@@ -57,6 +57,9 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPWSTR lpCmdLine, int 
 		//Create triangle vertices
 		vertex.createTriangleData(device.getDevice());
 
+		//Create textures
+		vertex.createTextures(device.getDevice());
+
 		//Create constant buffer
 		geometry.createConstBuffer(device.getDevice());
 
@@ -103,6 +106,9 @@ void Render(Device* device, Vertex* vertex, Geometry* geo, Pixel* pixel, Camera*
 	device->getDeviceContext()->DSSetShader(nullptr, nullptr, 0);
 	device->getDeviceContext()->GSSetShader(geo->getShader(), nullptr, 0);
 	device->getDeviceContext()->PSSetShader(pixel->getShader(), nullptr, 0);
+
+	ID3D11ShaderResourceView* grassView = vertex->getGrassView();
+	device->getDeviceContext()->PSSetShaderResources(0, 1, &grassView);
 
 	//Set vertex size and offset
 	UINT32 vSize = sizeof(float) * vertex->getValuesPerVertex();

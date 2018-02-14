@@ -8,6 +8,7 @@ struct GS_IN {
 
 	float4 pos : POSITION;
 	float3 normal : NORMAL;
+	float2 texUV : TEXCOORD;
 
 };
 
@@ -15,6 +16,7 @@ struct GS_OUT {
 
 	float4 pos : SV_POSITION;
 	float3 normal : NORMAL;
+	float2 texUV : TEXCOORD;
 
 };
 
@@ -30,6 +32,7 @@ void GS_main(triangle GS_IN input[3], inout TriangleStream<GS_OUT> outputStream)
 		input[i].pos = mul(input[i].pos, wvp);
 		output.pos = input[i].pos;
 		output.normal = input[i].normal;
+		output.texUV = input[i].texUV;
 
 		//Send values to stream
 		outputStream.Append(output);

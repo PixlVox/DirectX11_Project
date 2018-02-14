@@ -36,6 +36,9 @@ public:
 	ID3D11Buffer* getIndexBuffer(void);
 	ID3D11InputLayout* getInputLayout(void);
 
+	void createTextures(ID3D11Device* device);
+	ID3D11ShaderResourceView* getGrassView();
+
 };
 
 #endif // !VERTEX_Hs

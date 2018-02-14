@@ -62,9 +62,10 @@ void Geometry::createConstBuffer(ID3D11Device* device) {
 }
 
 void Geometry::updateMatrixValues(DirectX::XMMATRIX view, int wWidth, int wHeight) {
+	
 	//World offset pos by -250 and scale by 20x
 	DirectX::XMMATRIX world = DirectX::XMMatrixIdentity();
-	world = DirectX::XMMatrixScaling(400, 400, 400) *  DirectX::XMMatrixTranslation(-1500.0f, -1500.0f, -1500.0f);
+	world = DirectX::XMMatrixScaling(550, 550, 550) *  DirectX::XMMatrixTranslation(-1500.0f, -1500.0f, -1500.0f);
 
 	//Projection matrix
 	DirectX::XMMATRIX proj = DirectX::XMMatrixPerspectiveFovLH((DirectX::XM_PI * 0.45f), (wWidth / wHeight), 0.1f, 10000.0f);

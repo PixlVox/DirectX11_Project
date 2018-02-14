@@ -35,7 +35,8 @@ void Vertex::createShader(ID3D11Device* device) {
 
 	D3D11_INPUT_ELEMENT_DESC inputDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
 	device->CreateInputLayout(inputDesc, ARRAYSIZE(inputDesc), pVS->GetBufferPointer(), pVS->GetBufferSize(), &this->inputLayout);
@@ -100,5 +101,17 @@ ID3D11Buffer* Vertex::getIndexBuffer(void) {
 ID3D11InputLayout* Vertex::getInputLayout(void) {
 
 	return this->inputLayout;
+
+}
+
+void Vertex::createTextures(ID3D11Device* device) {
+
+	this->terrain.createTexture(device);
+
+}
+
+ID3D11ShaderResourceView* Vertex::getGrassView() {
+
+	return this->terrain.getGrassView();
 
 }

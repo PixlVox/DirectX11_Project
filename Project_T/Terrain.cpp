@@ -6,7 +6,10 @@ Terrain::Terrain() {
 	this->nrOfVertices = 0;
 	this->valuesPerVertex = 0;
 
-	this->scalingValue = 400.0f;
+	//Init to be able to load textures
+	CoInitializeEx(NULL, COINIT_MULTITHREADED);
+
+	this->scalingValue = 550.0f;
 	this->offsetValue = -1500.0f;
 
 	this->hM.height = 0;
@@ -117,9 +120,10 @@ void Terrain::createBuffers(ID3D11Device* device) {
 
 		DirectX::XMFLOAT3 pos;
 		DirectX::XMFLOAT3 normal;
+		DirectX::XMFLOAT2 texUV;
 
 	};
-	this->valuesPerVertex = 6;
+	this->valuesPerVertex = 8;
 
 	//Set number of vertices and faces
 	this->nrOfVertices = this->hM.height * this->hM.width;
@@ -151,28 +155,28 @@ void Terrain::createBuffers(ID3D11Device* device) {
 			//Triangle 1
 			//Bottom left of quad
 			indices[k] = (i * this->hM.width) + j;
-			//vec[(i * this->hM.width) + j].tC = DirectX::XMFLOAT2(texUIndex + 0.0f, texVIndex + 1.0f);
+			vec[(i * this->hM.width) + j].texUV = DirectX::XMFLOAT2(texUIndex + 0.0f, texVIndex + 1.0f);
 
 			//Bottom Right of quad
 			indices[k + 1] = (i * this->hM.width) + j + 1;
-			//vec[(i * this->hM.width) + j + 1].tC = DirectX::XMFLOAT2(texUIndex + 1.0f, texVIndex + 1.0f);
+			vec[(i * this->hM.width) + j + 1].texUV = DirectX::XMFLOAT2(texUIndex + 1.0f, texVIndex + 1.0f);
 
 			//Top left of quad
 			indices[k + 2] = ((i + 1) * this->hM.width) + j;
-			//vec[((i + 1) * this->hM.width) + j].tC = DirectX::XMFLOAT2(texUIndex + 0.0f, texVIndex + 0.0f);
+			vec[((i + 1) * this->hM.width) + j].texUV = DirectX::XMFLOAT2(texUIndex + 0.0f, texVIndex + 0.0f);
 
 			//Triangle 2
 			//Top left of quad
 			indices[k + 3] = ((i + 1) * this->hM.width) + j;
-			//vec[((i + 1) * this->hM.width) + j].tC = DirectX::XMFLOAT2(texUIndex + 0.0f, texVIndex + 0.0f);
+			vec[((i + 1) * this->hM.width) + j].texUV = DirectX::XMFLOAT2(texUIndex + 0.0f, texVIndex + 0.0f);
 
 			//Bottom right  of quad
 			indices[k + 4] = (i * this->hM.width) + j + 1;
-			//vec[(i * this->hM.width) + j + 1].tC = DirectX::XMFLOAT2(texUIndex + 1.0f, texVIndex + 1.0f);
+			vec[(i * this->hM.width) + j + 1].texUV = DirectX::XMFLOAT2(texUIndex + 1.0f, texVIndex + 1.0f);
 
 			//Top right of quad
 			indices[k + 5] = ((i + 1) * this->hM.width) + j + 1;
-			//vec[((i + 1) * this->hM.width) + j + 1].tC = DirectX::XMFLOAT2(texUIndex + 1.0f, texVIndex + 0.0f);
+			vec[((i + 1) * this->hM.width) + j + 1].texUV = DirectX::XMFLOAT2(texUIndex + 1.0f, texVIndex + 0.0f);
 
 			//Skip to next quad
 			k += 6;
@@ -294,6 +298,26 @@ void Terrain::createBuffers(ID3D11Device* device) {
 
 	iBufferData.pSysMem = &indices[0];
 	device->CreateBuffer(&iBufferDesc, &iBufferData, &this->iBuffer);
+
+}
+
+void Terrain::createTexture(ID3D11Device* device) {
+
+	//Create Grass texture view
+	HRESULT hr = DirectX::CreateDDSTextureFromFile(device, L"Textures//Grass.dds",
+		nullptr, &this->grassView);
+
+	if (FAILED(hr)) {
+
+		exit(-1);
+
+	}
+
+}
+
+ID3D11ShaderResourceView* Terrain::getGrassView(void) {
+
+	return this->grassView;
 
 }
 

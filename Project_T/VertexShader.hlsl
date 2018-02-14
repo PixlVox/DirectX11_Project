@@ -2,6 +2,7 @@ struct VS_IN {
 
 	float3 pos : POSITION;
 	float3 normal : NORMAL;
+	float2 texUV : TEXCOORD;
 
 };
 
@@ -9,6 +10,7 @@ struct VS_OUT {
 
 	float4 pos : POSITION;
 	float3 normal : NORMAL;
+	float2 texUV : TEXCOORD;
 
 };
 
@@ -18,6 +20,7 @@ VS_OUT VS_main(VS_IN input){
 
 	output.pos = float4(input.pos, 1.0f);
 	output.normal = input.normal;
+	output.texUV = input.texUV;
 
 	return output;
 

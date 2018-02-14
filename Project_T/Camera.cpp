@@ -146,7 +146,7 @@ void Camera::update(float heightValue) {
 	//Apply movement to the camera
 	if (heightValue != DirectX::XMVectorGetY(this->position)) {
 
-		float heightPos = (heightValue - DirectX::XMVectorGetY(this->position)) + 50.0f;
+		float heightPos = (heightValue - DirectX::XMVectorGetY(this->position)) + 100.0f;
 		this->position = DirectX::XMVectorAdd(DirectX::XMVectorScale(this->camY, heightPos), this->position);
 
 	}

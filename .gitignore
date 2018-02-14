@@ -1,0 +1,15 @@
+
+*.sln
+Project_N/DX11/.vs/DX11/v14/.suo
+Project_N/DX11/DX11.VC.db
+Project_N/DX11/DX11/DX11.vcxproj
+Project_N/DX11/DX11/DX11.vcxproj.filters
+*.obj
+*.log
+*.tlog
+*.idb
+*.pdb
+*.exe
+*.ilk
+*.iobj
+*.ipdb

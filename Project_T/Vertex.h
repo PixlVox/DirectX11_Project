@@ -38,6 +38,7 @@ public:
 
 	void createTextures(ID3D11Device* device);
 	ID3D11ShaderResourceView* getGrassView();
+	ID3D11SamplerState* getSamplerState();
 
 };
 

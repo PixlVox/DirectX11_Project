@@ -115,3 +115,9 @@ ID3D11ShaderResourceView* Vertex::getGrassView() {
 	return this->terrain.getGrassView();
 
 }
+
+ID3D11SamplerState* Vertex::getSamplerState() {
+
+	return this->terrain.getSamplerState();
+
+}

@@ -5,7 +5,7 @@
 #include <d3d11.h>
 #include<stdio.h>
 #include<vector>
-#include"DDSTextureLoader.h"
+#include"WICTextureLoader.h"
 
 class Terrain {
 
@@ -15,7 +15,7 @@ private:
 
 		int width;
 		int height;
-		DirectX::XMFLOAT3* vertexData;
+		DirectX::XMFLOAT3** vertexData;
 
 	};
 
@@ -28,6 +28,7 @@ private:
 	int valuesPerVertex;
 
 	//Texture
+	ID3D11SamplerState* sampState;
 	ID3D11ShaderResourceView* grassView;
 
 	//Buffers
@@ -42,7 +43,7 @@ public:
 	bool loadHeightMap();
 	void createBuffers(ID3D11Device* device);
 	void createTexture(ID3D11Device* device);
-	ID3D11ShaderResourceView* getGrassView(void);
+	void createSamplerState(ID3D11Device* device);
 
 	//Get
 	int getNrOfFaces(void) const;
@@ -52,6 +53,8 @@ public:
 
 	ID3D11Buffer* getVertexBuffer();
 	ID3D11Buffer* getIndexBuffer();
+	ID3D11ShaderResourceView* getGrassView(void);
+	ID3D11SamplerState* getSamplerState();
 
 };
 

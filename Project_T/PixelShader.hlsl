@@ -1,11 +1,5 @@
 Texture2D grass : register(t0);
-SamplerState samp {
-
-	Filer = MIN_MAG_MIP_LINEAR;
-	AddressU = Wrap;
-	AddressV = Wrap;
-
-};
+SamplerState samp : register(s0);
 
 
 struct PS_IN {

@@ -107,8 +107,13 @@ void Render(Device* device, Vertex* vertex, Geometry* geo, Pixel* pixel, Camera*
 	device->getDeviceContext()->GSSetShader(geo->getShader(), nullptr, 0);
 	device->getDeviceContext()->PSSetShader(pixel->getShader(), nullptr, 0);
 
+	//Send grass texture view to PS
 	ID3D11ShaderResourceView* grassView = vertex->getGrassView();
 	device->getDeviceContext()->PSSetShaderResources(0, 1, &grassView);
+
+	//Send Terrain's texture samplerState to PS
+	ID3D11SamplerState* terrainSampler = vertex->getSamplerState();
+	device->getDeviceContext()->PSSetSamplers(0, 1, &terrainSampler);
 
 	//Set vertex size and offset
 	UINT32 vSize = sizeof(float) * vertex->getValuesPerVertex();

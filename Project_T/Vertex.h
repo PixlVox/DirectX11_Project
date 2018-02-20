@@ -25,6 +25,7 @@ public:
 
 	void createShader(ID3D11Device* device);
 	void createTriangleData(ID3D11Device* device);
+	void createSamplerState(ID3D11Device* device);
 
 	//Get
 	ID3D11VertexShader* getShader(void);
@@ -38,6 +39,7 @@ public:
 
 	void createTextures(ID3D11Device* device);
 	ID3D11ShaderResourceView* getGrassView();
+	ID3D11ShaderResourceView* getStoneView();
 	ID3D11SamplerState* getSamplerState();
 
 };

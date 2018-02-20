@@ -130,8 +130,8 @@ void Terrain::createBuffers(ID3D11Device* device) {
 	struct Vertex {
 
 		DirectX::XMFLOAT3 pos;
-		DirectX::XMFLOAT3 normal;
 		DirectX::XMFLOAT2 texUV;
+		DirectX::XMFLOAT3 normal;
 
 	};
 	this->valuesPerVertex = 8;
@@ -317,11 +317,27 @@ void Terrain::createTexture(ID3D11Device* device) {
 
 	}
 
+	//Create stone texture
+	hr = DirectX::CreateWICTextureFromFile(device, L"Textures//Stone.png",
+		nullptr, &this->stoneView);
+
+	if (FAILED(hr)) {
+
+		exit(-1);
+
+	}
+
 }
 
 ID3D11ShaderResourceView* Terrain::getGrassView(void) {
 
 	return this->grassView;
+
+}
+
+ID3D11ShaderResourceView* Terrain::getStoneView(void) {
+
+	return this->stoneView;
 
 }
 
@@ -387,9 +403,8 @@ void Terrain::createSamplerState(ID3D11Device* device) {
 	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
 	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampDesc.MipLODBias = 0.0f;
 	sampDesc.MaxAnisotropy = 1;
-	sampDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	sampDesc.MinLOD = 0;
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 

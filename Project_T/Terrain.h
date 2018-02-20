@@ -30,6 +30,7 @@ private:
 	//Texture
 	ID3D11SamplerState* sampState;
 	ID3D11ShaderResourceView* grassView;
+	ID3D11ShaderResourceView* stoneView;
 
 	//Buffers
 	ID3D11Buffer* vBuffer;
@@ -54,6 +55,7 @@ public:
 	ID3D11Buffer* getVertexBuffer();
 	ID3D11Buffer* getIndexBuffer();
 	ID3D11ShaderResourceView* getGrassView(void);
+	ID3D11ShaderResourceView* getStoneView(void);
 	ID3D11SamplerState* getSamplerState();
 
 };

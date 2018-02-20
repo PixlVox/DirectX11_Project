@@ -59,6 +59,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPWSTR lpCmdLine, int 
 
 		//Create textures
 		vertex.createTextures(device.getDevice());
+		vertex.createSamplerState(device.getDevice());
 
 		//Create constant buffer
 		geometry.createConstBuffer(device.getDevice());
@@ -110,6 +111,10 @@ void Render(Device* device, Vertex* vertex, Geometry* geo, Pixel* pixel, Camera*
 	//Send grass texture view to PS
 	ID3D11ShaderResourceView* grassView = vertex->getGrassView();
 	device->getDeviceContext()->PSSetShaderResources(0, 1, &grassView);
+
+	//Send stone texture view to PS
+	ID3D11ShaderResourceView* stoneView = vertex->getStoneView();
+	device->getDeviceContext()->PSSetShaderResources(1, 1, &stoneView);
 
 	//Send Terrain's texture samplerState to PS
 	ID3D11SamplerState* terrainSampler = vertex->getSamplerState();

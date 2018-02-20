@@ -7,16 +7,16 @@ cbuffer MATRIX_BUFFER : register(b0) {
 struct GS_IN {
 
 	float4 pos : POSITION;
-	float3 normal : NORMAL;
 	float2 texUV : TEXCOORD;
+	float3 normal : NORMAL;
 
 };
 
 struct GS_OUT {
 
 	float4 pos : SV_POSITION;
-	float3 normal : NORMAL;
 	float2 texUV : TEXCOORD;
+	float3 normal : NORMAL;
 
 };
 

@@ -188,7 +188,7 @@ void BlendQuad::updateMatrix(DirectX::XMMATRIX view, DirectX::XMMATRIX proj,
 
 	//World offset and scale
 	DirectX::XMMATRIX world = DirectX::XMMatrixIdentity();
-	world = DirectX::XMMatrixScaling(6400, 3200, 400) *  DirectX::XMMatrixTranslation(-1500.0f, -1500.0f, -1500.0f);
+	world = DirectX::XMMatrixScaling(6400, 3200, 400) *  DirectX::XMMatrixTranslation(-1500.0f, -1500.0f, 1000.0f);
 	mat.world = world;
 
 	//World * View * Projection Matrix

@@ -278,10 +278,10 @@ bool Camera::getPick(void) const{
 }
 
 DirectX::XMVECTOR Camera::pickMouse(D3D11_VIEWPORT vp) {
-
-	//Store x & y mouse pos
-	int mouseX = this->currentMouseState.lX;
-	int mouseY = this->currentMouseState.lY;
+	
+	//Store x & y mouse pos, move it to center instead of top left corner
+	int mouseX = (this->currentMouseState.lX + (vp.Width / 2));
+	int mouseY = (this->currentMouseState.lY + (vp.Height / 2));
 
 	//Create vectors to each viewport plane
 	DirectX::XMVECTOR nearVec = { (float)mouseX, (float)mouseY, 0.0f };
@@ -301,7 +301,7 @@ DirectX::XMVECTOR Camera::pickMouse(D3D11_VIEWPORT vp) {
 	//Create ray from near to far plane
 	DirectX::XMVECTOR dir = DirectX::XMVectorSubtract(farVec, nearVec);
 	dir = DirectX::XMVector3Normalize(dir);
-
+	
 	return dir;
 
 }

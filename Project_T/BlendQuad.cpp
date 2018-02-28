@@ -109,15 +109,35 @@ void BlendQuad::createTexture(ID3D11Device* device) {
 
 }
 
-ID3D11Buffer* BlendQuad::getBuffer(void) {
+void BlendQuad::createBlendState(ID3D11Device* device) {
 
-	return this->vBuffer;
+	//Setup blending state for alpha blending
+	//(source * sourceAlpha) + (destination * inverseDestinationAlpha)
+	D3D11_BLEND_DESC blendDesc;
+	ZeroMemory(&blendDesc, sizeof(blendDesc));
+	blendDesc.RenderTarget[0].BlendEnable = true;
+	blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
+	blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+	blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+	HRESULT hr = device->CreateBlendState(&blendDesc, &this->blendState);
+
+	if (FAILED(hr)) {
+
+		exit(-1);
+
+	}
 
 }
 
-ID3D11Buffer* BlendQuad::getConstBuffer(void) {
 
-	return this->cBuffer;
+ID3D11Buffer* BlendQuad::getBuffer(void) {
+
+	return this->vBuffer;
 
 }
 
@@ -163,15 +183,13 @@ void BlendQuad::createConstBuffer(ID3D11Device* device) {
 
 }
 
-void BlendQuad::updateMatrix(DirectX::XMMATRIX view, long wWidth, long wHeight) {
+void BlendQuad::updateMatrix(DirectX::XMMATRIX view, DirectX::XMMATRIX proj, 
+	long wWidth, long wHeight) {
 
-	//World offset pos by -1500 and scale by 400x
+	//World offset and scale
 	DirectX::XMMATRIX world = DirectX::XMMatrixIdentity();
 	world = DirectX::XMMatrixScaling(6400, 3200, 400) *  DirectX::XMMatrixTranslation(-1500.0f, -1500.0f, -1500.0f);
 	mat.world = world;
-
-	//Projection matrix
-	DirectX::XMMATRIX proj = DirectX::XMMatrixPerspectiveFovLH((DirectX::XM_PI * 0.45f), (wWidth / wHeight), 0.1f, 10000.0f);
 
 	//World * View * Projection Matrix
 	mat.wvp = DirectX::XMMatrixTranspose(world * view * proj);
@@ -188,5 +206,11 @@ void BlendQuad::mapConstBuffer(ID3D11DeviceContext* dContext) {
 
 	//Set rescources to shaders
 	dContext->GSSetConstantBuffers(0, 1, &this->cBuffer);
+
+}
+
+ID3D11BlendState* BlendQuad::getBlendState(void) {
+
+	return this->blendState;
 
 }

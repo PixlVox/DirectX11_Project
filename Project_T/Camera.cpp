@@ -1,6 +1,6 @@
 #include"Camera.h"
 
-Camera::Camera() {
+Camera::Camera(long wWidth, long wHeight) {
 
 	//Camera
 	this->camForward = { 0.0f, 0.0f, 1.0f, 0.0f };
@@ -10,6 +10,10 @@ Camera::Camera() {
 
 	this->camTarget = { 0.0f, 0.0f, 0.0f, 0.0f };
 	this->position = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+	this->proj = DirectX::XMMatrixPerspectiveFovLH((DirectX::XM_PI * 0.45f), (wWidth / wHeight), 0.1f, 10000.0f);;
+
+	this->pick = false;
 
 	this->camRotation = DirectX::XMMatrixIdentity();
 	this->camView = DirectX::XMMatrixIdentity();
@@ -39,10 +43,9 @@ Camera::~Camera() {
 
 }
 
-void Camera::getInput(double time) {
+void Camera::getInput() {
 
 	//Stores mouse/keyboard info
-	DIMOUSESTATE currentMouseState;
 	BYTE keyboardState[256];
 
 	//Acuires the mouse and keyboard for this application(incase it is used elsewhere)
@@ -51,7 +54,7 @@ void Camera::getInput(double time) {
 
 	//Get current state of mouse/keyboard
 	this->keyboard->GetDeviceState(sizeof(keyboardState), (LPVOID)&keyboardState);
-	this->mouse->GetDeviceState(sizeof(DIMOUSESTATE), &currentMouseState);
+	this->mouse->GetDeviceState(sizeof(DIMOUSESTATE), &this->currentMouseState);
 
 	//Store directions
 	bool x = false, z = false;
@@ -104,21 +107,28 @@ void Camera::getInput(double time) {
 	}
 
 	//Check mouse input
-	if (currentMouseState.lX != this->previousMouseState.lX) {
+	if (this->currentMouseState.lX != this->previousMouseState.lX) {
 
-		this->yaw += currentMouseState.lX * 0.005f;
+		this->yaw += this->currentMouseState.lX * 0.005f;
 
 		//Save previous mouse state
-		this->previousMouseState = currentMouseState;
+		this->previousMouseState = this->currentMouseState;
 
 	}
 
-	if (currentMouseState.lY != this->previousMouseState.lY) {
+	if (this->currentMouseState.lY != this->previousMouseState.lY) {
 
-		this->pitch += currentMouseState.lY * 0.005f;
+		this->pitch += this->currentMouseState.lY * 0.005f;
 
 		//Save previous mouse state
-		this->previousMouseState = currentMouseState;
+		this->previousMouseState = this->currentMouseState;
+
+	}
+
+	//Check if left mouse button is clicked
+	if ((this->currentMouseState.rgbButtons[0] & 0x80) != 0) {
+
+		this->pick = true;
 
 	}
 
@@ -144,9 +154,10 @@ void Camera::update(float heightValue) {
 	this->camUp = DirectX::XMVector3TransformCoord(this->camUp, matRotY);
 
 	//Apply movement to the camera
+
 	if (heightValue != DirectX::XMVectorGetY(this->position)) {
 
-		float heightPos = (heightValue - DirectX::XMVectorGetY(this->position)) + 1000.0f;
+		float heightPos = (heightValue - DirectX::XMVectorGetY(this->position)) + 200.0f;
 		this->position = DirectX::XMVectorAdd(DirectX::XMVectorScale(this->camY, heightPos), this->position);
 
 	}
@@ -236,6 +247,18 @@ DirectX::XMMATRIX Camera::getView(void) const {
 
 }
 
+DirectX::XMMATRIX Camera::getProj(void) const{
+
+	return this->proj;
+
+}
+
+DirectX::XMVECTOR Camera::getPosition(void) {
+
+	return this->position;
+
+}
+
 float Camera::getX(void) const{
 
 	return DirectX::XMVectorGetX(this->position);
@@ -245,5 +268,46 @@ float Camera::getX(void) const{
 float Camera::getZ(void) const{
 
 	return DirectX::XMVectorGetZ(this->position);
+
+}
+
+bool Camera::getPick(void) const{
+
+	return this->pick;
+
+}
+
+DirectX::XMVECTOR Camera::pickMouse(D3D11_VIEWPORT vp) {
+
+	//Store x & y mouse pos
+	int mouseX = this->currentMouseState.lX;
+	int mouseY = this->currentMouseState.lY;
+
+	//Create vectors to each viewport plane
+	DirectX::XMVECTOR nearVec = { (float)mouseX, (float)mouseY, 0.0f };
+	DirectX::XMVECTOR farVec = { (float)mouseX, (float)mouseY, 1.0f };
+
+	//Create world matrix at 0,0,0
+	DirectX::XMMATRIX world = DirectX::XMMatrixTranslation(0.0f, 0.0f, 0.0f);
+
+	//Unproject nearVec
+	nearVec = DirectX::XMVector3Unproject(nearVec, vp.TopLeftX, vp.TopLeftY, vp.Width, vp.Height, vp.MinDepth,
+		vp.MaxDepth, this->proj, this->camView, world);
+
+	//Unproject farVec
+	farVec = DirectX::XMVector3Unproject(farVec, vp.TopLeftX, vp.TopLeftY, vp.Width, vp.Height, vp.MinDepth,
+		vp.MaxDepth, this->proj, this->camView, world);
+
+	//Create ray from near to far plane
+	DirectX::XMVECTOR dir = DirectX::XMVectorSubtract(farVec, nearVec);
+	dir = DirectX::XMVector3Normalize(dir);
+
+	return dir;
+
+}
+
+void Camera::setPick(bool pick) {
+
+	this->pick = pick;
 
 }

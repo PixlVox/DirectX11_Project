@@ -3,6 +3,7 @@
 
 //Used for vector & matrix calculations
 #include<DirectXMath.h>
+#include <d3d11.h>
 
 //Used for keyboard/mouse input
 #pragma comment (lib, "dinput8.lib")
@@ -23,6 +24,9 @@ private:
 
 	DirectX::XMMATRIX camRotation;
 	DirectX::XMMATRIX camView;
+	DirectX::XMMATRIX proj;
+
+	bool pick;
 
 	//Camera movement and rotation values
 	float speed;
@@ -37,21 +41,29 @@ private:
 
 	//Previous mouse state and directInput object(used to get input from keyboard)
 	DIMOUSESTATE previousMouseState;
+	DIMOUSESTATE currentMouseState;
 	LPDIRECTINPUT8 dI;
 
 public:
 
-	Camera();
+	Camera(long wWidth, long wHeight);
 	~Camera();
 
-	void getInput(double time);
+	void getInput();
 	void update(float heightValue);
 	bool initDI(HINSTANCE hInst, HWND wHandle);
+	DirectX::XMVECTOR pickMouse(D3D11_VIEWPORT vp);
 
 	//Get
 	DirectX::XMMATRIX getView(void) const;
+	DirectX::XMMATRIX getProj(void) const;
+	DirectX::XMVECTOR getPosition(void);
 	float getX(void) const;
 	float getZ(void) const;
+	bool getPick(void) const;
+
+	//Set
+	void setPick(bool pick);
 
 };
 

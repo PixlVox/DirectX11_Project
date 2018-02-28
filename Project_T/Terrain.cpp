@@ -6,11 +6,11 @@ Terrain::Terrain() {
 	this->nrOfVertices = 0;
 	this->valuesPerVertex = 0;
 
-	//Init to be able to load textures
-	CoInitializeEx(NULL, COINIT_MULTITHREADED);
+	this->worldScale = 400.0f;
+	this->worldOffset = -1500.0f;
 
-	this->scalingValue = 400.0f;
-	this->offsetValue = -1500.0f;
+	this->mat.wvp = DirectX::XMMatrixIdentity();
+	this->mat.world = DirectX::XMMatrixIdentity();
 
 	this->hM.height = 0;
 	this->hM.width = 0;
@@ -18,9 +18,9 @@ Terrain::Terrain() {
 
 	this->vBuffer = nullptr;
 	this->iBuffer = nullptr;
+	this->cBuffer = nullptr;
 
 	this->sampState = nullptr;
-	this->blendState = nullptr;
 
 	this->grassView = nullptr;
 	this->stoneView = nullptr;
@@ -43,6 +43,14 @@ Terrain::~Terrain() {
 
 	this->vBuffer->Release();
 	this->iBuffer->Release();
+	this->cBuffer->Release();
+
+}
+
+void Terrain::initHeightMap(ID3D11Device* device) {
+
+	this->loadHeightMap();
+	this->createBuffers(device);
 
 }
 
@@ -335,6 +343,57 @@ void Terrain::createTexture(ID3D11Device* device) {
 
 }
 
+void Terrain::createConstBuffer(ID3D11Device* device) {
+
+	HRESULT hr = 0;
+
+	//Buffer desc
+	D3D11_BUFFER_DESC constBufferDesc;
+	constBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	constBufferDesc.ByteWidth = sizeof(Matrix);
+	constBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	constBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	constBufferDesc.MiscFlags = 0;
+	constBufferDesc.StructureByteStride = 0;
+
+	//Check if failed
+	hr = device->CreateBuffer(&constBufferDesc, nullptr, &this->cBuffer);
+
+	if (FAILED(hr)) {
+
+		exit(-1);
+
+	}
+
+}
+
+void Terrain::updateMatrixValues(DirectX::XMMATRIX view, DirectX::XMMATRIX proj,
+	int wWidth, int wHeight) {
+
+	//World offset pos by -1500 and scale by 400x
+	DirectX::XMMATRIX world = DirectX::XMMatrixIdentity();
+	world = DirectX::XMMatrixScaling(this->worldScale, this->worldScale, this->worldScale)
+		*  DirectX::XMMatrixTranslation(this->worldOffset, this->worldOffset, this->worldOffset);
+	mat.world = world;
+
+	//World * View * Projection Matrix
+	mat.wvp = DirectX::XMMatrixTranspose(world * view * proj);
+
+}
+
+void Terrain::mapConstBuffer(ID3D11DeviceContext* dContext) {
+
+	//Map buffer
+	D3D11_MAPPED_SUBRESOURCE dataPtr;
+	dContext->Map(this->cBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &dataPtr);
+	memcpy(dataPtr.pData, &this->mat, sizeof(Matrix));
+	dContext->Unmap(this->cBuffer, 0);
+
+	//Set rescources to shaders
+	dContext->GSSetConstantBuffers(0, 1, &this->cBuffer);
+
+}
+
 ID3D11ShaderResourceView* Terrain::getGrassView(void) {
 
 	return this->grassView;
@@ -383,14 +442,42 @@ float Terrain::getHeightValueAtPos(float x, float z) const {
 	bool stop = false;
 
 	//check bounds of terrain
-	if (x > this->offsetValue && x < (this->hM.width * this->scalingValue) + this->offsetValue &&
-		z > this->offsetValue && z < (this->hM.height * this->scalingValue) + this->offsetValue) {
+	if (x > this->worldOffset && x < (this->hM.width * this->worldScale) + this->worldOffset &&
+		z > this->worldOffset && z < (this->hM.height * this->worldScale) + this->worldOffset) {
 
 		//Find a near vertex point
-		int xIndex = (std::abs(this->offsetValue - x)) / this->scalingValue;
-		int zIndex = (std::abs(this->offsetValue - z)) / this->scalingValue;
+		int xIndex = (std::abs(this->worldOffset - x)) / this->worldScale;
+		int zIndex = (std::abs(this->worldOffset - z)) / this->worldScale;
 
-		height = (this->hM.vertexData[zIndex][xIndex].y * this->scalingValue) + this->offsetValue;
+		//Take 4 close points average
+		float h1 = (this->hM.vertexData[zIndex][xIndex].y * this->worldScale) + this->worldOffset;
+		float h2 = 0.0f;
+		float h3 = 0.0f;
+		float h4 = 0.0f;
+		float count = 1.0f;
+
+		if (zIndex < (this->hM.height - 1)) {
+
+			h2 = (this->hM.vertexData[zIndex + 1][xIndex].y * this->worldScale) + this->worldOffset;
+			count++;
+
+		}
+
+		if (xIndex < (this->hM.width - 1)) {
+
+			h3 = (this->hM.vertexData[zIndex][xIndex + 1].y * this->worldScale) + this->worldOffset;
+			count++;
+
+		}
+
+		if (zIndex < (this->hM.height - 1) && xIndex < (this->hM.width - 1)) {
+
+			h4 = (this->hM.vertexData[zIndex + 1][xIndex + 1].y * this->worldScale) + this->worldOffset;
+			count++;
+
+		}
+
+		height = (h1 + h2 + h3 + h4) / count;
 
 	}
 
@@ -419,37 +506,8 @@ void Terrain::createSamplerState(ID3D11Device* device) {
 
 }
 
-void Terrain::createBlendState(ID3D11Device* device) {
-
-	D3D11_BLEND_DESC blendDesc;
-	ZeroMemory(&blendDesc, sizeof(blendDesc));
-	blendDesc.RenderTarget[0].BlendEnable = true;
-	blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-	blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-	blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-	blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-	blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
-	blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-
-	HRESULT hr = device->CreateBlendState(&blendDesc, &this->blendState);
-
-	if (FAILED(hr)) {
-
-		exit(-1);
-
-	}
-
-}
-
 ID3D11SamplerState* Terrain::getSamplerState() {
 
 	return this->sampState;
-
-}
-
-ID3D11BlendState* Terrain::getBlendState(void) {
-
-	return this->blendState;
 
 }

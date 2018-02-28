@@ -10,33 +10,19 @@ class Geometry {
 private:
 
 	ID3D11GeometryShader* shader;
-	ID3D11Buffer* constBuffer;
-
-	struct Matrix {
-
-		DirectX::XMMATRIX wvp;
-		DirectX::XMMATRIX world;
-
-	};
-
-	Matrix mat;
-
+	ID3D11GeometryShader* shaderColor;
 
 public:
 
 	Geometry();
 	~Geometry();
 
+	//Create shaders
 	void createShader(ID3D11Device* device);
-	void createConstBuffer(ID3D11Device* device);
-	void mapConstBuffer(ID3D11DeviceContext* dContext);
-
-	//Handle matrix
-	void updateMatrixValues(DirectX::XMMATRIX view, int wWidth, int wHeight);
 
 	//Get
 	ID3D11GeometryShader* getShader(void);
-	ID3D11Buffer* getConstBuffer(void);
+	ID3D11GeometryShader* getShaderColor(void);
 
 };
 

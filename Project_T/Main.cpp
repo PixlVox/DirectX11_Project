@@ -1,27 +1,36 @@
 #include <windows.h>
+#include <ctime>
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment (lib, "d3dcompiler.lib")
 
 #include"Device.h"
+
 #include"Vertex.h"
 #include"Geometry.h"
 #include"Pixel.h"
-#include"Compute.h"
+
+#include"Terrain.h"
 #include"Camera.h"
 #include"BlendQuad.h"
+#include"PickQuad.h"
 
 const LONG WIDTH = 1200;
 const LONG HEIGHT = 700;
 
 HWND initWindow(HINSTANCE hInst);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-void SetViewport(ID3D11DeviceContext* dContext);
-void Render(Device* device, Vertex* vertex, Geometry* geo, Pixel* pixel, Compute* compute, Camera* cam, BlendQuad* blendQ);
+D3D11_VIEWPORT SetViewport(ID3D11DeviceContext* dContext);
+void Render(Device* device, Vertex* vertex, Geometry* geo, Pixel* pixel,
+	Terrain* terrain, Camera* cam, BlendQuad* blendQ,
+	PickQuad* pQ, D3D11_VIEWPORT vp, float& timer);
 
 int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPWSTR lpCmdLine, int nCmdShow) {
 
 	MSG msg = { 0 };
+
+	//Init to be able to load textures
+	CoInitializeEx(NULL, COINIT_MULTITHREADED);
 
 	//Create window
 	HWND wHandle = initWindow(hInst);
@@ -34,12 +43,19 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPWSTR lpCmdLine, int 
 		Vertex vertex;
 		Geometry geometry;
 		Pixel pixel;
-		Compute compute;
 
+		Terrain terrain;
 		BlendQuad blendQ;
-		Camera cam;
-
+		PickQuad pQ;
+		Camera cam(WIDTH, HEIGHT);
+		
+		D3D11_VIEWPORT vpCopy;
 		HRESULT hr = NULL;
+
+		//Deltatime
+		float deltaTime = 0.0f;
+		float timer = 0.0f;
+		std::clock_t deltaClock;
 
 		//Create device object(device, deviceContext, swapChain, backBufferRVT)
 		hr = device.createContext(wHandle, (int)WIDTH, (int)HEIGHT);
@@ -51,28 +67,28 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPWSTR lpCmdLine, int 
 		}
 
 		//Set the viewport
-		SetViewport(device.getDeviceContext());
+		vpCopy = SetViewport(device.getDeviceContext());
 
 		//Create shaders
 		vertex.createShader(device.getDevice());
 		geometry.createShader(device.getDevice());
 		pixel.createShader(device.getDevice());
-		compute.createShader(device.getDevice());
 
 		//Create buffers
-		vertex.createTriangleData(device.getDevice());
+		terrain.initHeightMap(device.getDevice());
 		blendQ.createBuffer(device.getDevice());
-		compute.createBuffers(device.getDevice(), device.getDeviceContext());
+		pQ.createBuffer(device.getDevice());
 
-		//Create textures
-		vertex.createTextures(device.getDevice());
+		//Create textures and states
+		terrain.createTexture(device.getDevice());
 		blendQ.createTexture(device.getDevice());
-		vertex.createSamplerState(device.getDevice());
-		vertex.createBlendState(device.getDevice());
+		terrain.createSamplerState(device.getDevice());
+		blendQ.createBlendState(device.getDevice());
 
 		//Create constant buffer
-		geometry.createConstBuffer(device.getDevice());
+		terrain.createConstBuffer(device.getDevice());
 		blendQ.createConstBuffer(device.getDevice());
+		pQ.createConstBuffer(device.getDevice());
 
 		//Create camera
 		cam.initDI(hInst, wHandle);
@@ -83,6 +99,9 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPWSTR lpCmdLine, int 
 		//Updates the program
 		while (WM_QUIT != msg.message) {
 
+			//Start timer
+			deltaClock = std::clock();
+
 			if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
 
 				TranslateMessage(&msg);
@@ -92,12 +111,16 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPWSTR lpCmdLine, int 
 			else {
 
 				//Render
-				Render(&device, &vertex, &geometry, &pixel, &compute, &cam, &blendQ);
+				Render(&device, &vertex, &geometry, &pixel, &terrain,
+					&cam, &blendQ, &pQ, vpCopy, timer);
 
 				//Swap front & back buffers
 				device.getSwapChain()->Present(0, 0);
 
 			}
+
+			deltaTime = (float)(std::clock() - deltaClock) / (float)CLOCKS_PER_SEC;
+			timer += deltaTime;
 
 		}
 	}
@@ -106,7 +129,9 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPWSTR lpCmdLine, int 
 
 }
 
-void Render(Device* device, Vertex* vertex, Geometry* geo, Pixel* pixel, Compute* compute, Camera* cam, BlendQuad* blendQ) {
+void Render(Device* device, Vertex* vertex, Geometry* geo, Pixel* pixel,
+	Terrain* terrain, Camera* cam, BlendQuad* blendQ,
+	PickQuad* pQ, D3D11_VIEWPORT vp, float& timer) {
 
 	//Set a default color
 	float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -115,11 +140,34 @@ void Render(Device* device, Vertex* vertex, Geometry* geo, Pixel* pixel, Compute
 	device->getDeviceContext()->ClearDepthStencilView(device->getDepthStencil(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	device->getDeviceContext()->ClearRenderTargetView(device->getBackBufferRTV(), clearColor);
 
-	//Update camera and matrices
-	cam->getInput(0.0f);
-	cam->update(vertex->getHeightValueAtPos(cam->getX(), cam->getZ()));
-	geo->updateMatrixValues(cam->getView(), (int)WIDTH, (int)HEIGHT);
-	blendQ->updateMatrix(cam->getView(), (int)WIDTH, (int)HEIGHT);
+	//Update camera
+	cam->getInput();
+	cam->update(terrain->getHeightValueAtPos(cam->getX(), cam->getZ()));
+	DirectX::XMVECTOR mouseDir = cam->pickMouse(vp);
+
+	//UpdateMatrices
+	terrain->updateMatrixValues(cam->getView(), cam->getProj(), WIDTH, HEIGHT);
+	blendQ->updateMatrix(cam->getView(), cam->getProj(), WIDTH, HEIGHT);
+	pQ->updateMatrix(cam->getView(), cam->getProj(), WIDTH, HEIGHT);
+
+	//Check if pickQuad was clicked on
+	if (cam->getPick()) {
+
+		if (timer >= 0.16f) {
+
+			if (pQ->intersect(mouseDir, cam->getPosition())) {
+
+				//Update color of quad
+				pQ->updateBuffer(device->getDevice());
+				timer = 0.0f;
+
+			}
+
+		}
+
+		cam->setPick(false);
+
+	}
 
 	//////////////////////////////////Terrain///////////////////////////////////
 
@@ -131,30 +179,30 @@ void Render(Device* device, Vertex* vertex, Geometry* geo, Pixel* pixel, Compute
 	device->getDeviceContext()->PSSetShader(pixel->getShader(), nullptr, 0);
 
 	//Send grass texture view to PS
-	ID3D11ShaderResourceView* grassView = vertex->getGrassView();
+	ID3D11ShaderResourceView* grassView = terrain->getGrassView();
 	device->getDeviceContext()->PSSetShaderResources(0, 1, &grassView);
 
 	//Send stone texture view to PS
-	ID3D11ShaderResourceView* stoneView = vertex->getStoneView();
+	ID3D11ShaderResourceView* stoneView = terrain->getStoneView();
 	device->getDeviceContext()->PSSetShaderResources(1, 1, &stoneView);
 
 	//Send Terrain's texture samplerState to PS
-	ID3D11SamplerState* terrainSampler = vertex->getSamplerState();
+	ID3D11SamplerState* terrainSampler = terrain->getSamplerState();
 	device->getDeviceContext()->PSSetSamplers(0, 1, &terrainSampler);
 
 	//Set vertex size and offset
-	UINT32 vSize = sizeof(float) * vertex->getValuesPerVertex();
+	UINT32 vSize = sizeof(float) * terrain->getValuesPerVertex();
 	UINT32 offset = 0;
 
 	//Set vertex & index buffer
-	ID3D11Buffer* tempBuffer = vertex->getVertexBuffer();
+	ID3D11Buffer* tempBuffer = terrain->getVertexBuffer();
 	device->getDeviceContext()->IASetVertexBuffers(0, 1, &tempBuffer, &vSize, &offset);
-	device->getDeviceContext()->IASetIndexBuffer(vertex->getIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
+	device->getDeviceContext()->IASetIndexBuffer(terrain->getIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
 
 	device->getDeviceContext()->IASetInputLayout(vertex->getInputLayout());
 
 	//Map constant buffer
-	geo->mapConstBuffer(device->getDeviceContext());
+	terrain->mapConstBuffer(device->getDeviceContext());
 
 	//Set primitive type
 	device->getDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -164,7 +212,37 @@ void Render(Device* device, Vertex* vertex, Geometry* geo, Pixel* pixel, Compute
 	device->getDeviceContext()->OMSetBlendState(nullptr, blendValues, 0xffffffff);
 
 	//Draw Terrain
-	device->getDeviceContext()->DrawIndexed((vertex->getNrOfFaces() * 3), 0, 0);
+	device->getDeviceContext()->DrawIndexed((terrain->getNrOfFaces() * 3), 0, 0);
+
+	///////////////////////////////////Draw PickQuad//////////////////////////
+
+	//Set rendering state
+	device->getDeviceContext()->VSSetShader(vertex->getShaderColor(), nullptr, 0);
+	device->getDeviceContext()->HSSetShader(nullptr, nullptr, 0);
+	device->getDeviceContext()->DSSetShader(nullptr, nullptr, 0);
+	device->getDeviceContext()->GSSetShader(geo->getShaderColor(), nullptr, 0);
+	device->getDeviceContext()->PSSetShader(pixel->getColorShader(), nullptr, 0);
+
+	//Set buffer for GameArea room
+	vSize = sizeof(float) * pQ->getValuesPerVertex();
+	offset = 0;
+	tempBuffer = pQ->getBuffer();
+	device->getDeviceContext()->IASetVertexBuffers(0, 1, &tempBuffer, &vSize, &offset);
+
+	//Set inputLayout
+	device->getDeviceContext()->IASetInputLayout(vertex->getInputLayoutColor());
+
+	//Map constant buffer
+	pQ->mapConstBuffer(device->getDeviceContext());
+
+	//Set primitive type
+	device->getDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	//Set blend state
+	device->getDeviceContext()->OMSetBlendState(nullptr, blendValues, 0xffffffff);
+
+	//Draw BlendQuad
+	device->getDeviceContext()->Draw(pQ->getNrOfVertices(), 0);
 
 	/////////////////////////////////BlendQuad///////////////////////////////////////
 
@@ -195,74 +273,15 @@ void Render(Device* device, Vertex* vertex, Geometry* geo, Pixel* pixel, Compute
 	device->getDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	//Set blend state
-	device->getDeviceContext()->OMSetBlendState(vertex->getBlendState(), blendValues, 0xffffffff);
+	device->getDeviceContext()->OMSetBlendState(blendQ->getBlendState(), blendValues, 0xffffffff);
 
 	//Draw BlendQuad
 	device->getDeviceContext()->Draw(blendQ->getNrOfVertices(), 0);
 
-	///////////////////////////////Compute Shader/////////////////////////////
-
-	//Set compute shader
-	device->getDeviceContext()->CSSetShader(compute->getShader(), NULL, 0);
-
-	//Set input glow buffer for CS
-	ID3D11ShaderResourceView* tempView = compute->getGlowView();
-	device->getDeviceContext()->CSSetShaderResources(0, 1, &tempView);
-
-	//Set input glowMap buffer for CS
-	tempView = compute->getGlowMapView();
-	device->getDeviceContext()->CSSetShaderResources(1, 1, &tempView);
-
-	//Set output buffer for CS
-	ID3D11UnorderedAccessView* tempUnorderedView = compute->getOutputView();
-	device->getDeviceContext()->CSSetUnorderedAccessViews(0, 1,
-		&tempUnorderedView, (UINT*)&tempUnorderedView);
-
-	//Run CS(Image is 800x800, runs one thread per pixel)
-	device->getDeviceContext()->Dispatch(800, 800, 1);
-
-	//Save the result of CS in a accesible resourceView
-	compute->saveResult(device->getDevice(), device->getDeviceContext());
-
-	//Store the output from CS in a buffer for VS
-	compute->createVertexBuffer(device->getDevice(), device->getDeviceContext());
-
-	//Set rendering state
-	device->getDeviceContext()->VSSetShader(vertex->getShader(), nullptr, 0);
-	device->getDeviceContext()->HSSetShader(nullptr, nullptr, 0);
-	device->getDeviceContext()->DSSetShader(nullptr, nullptr, 0);
-	device->getDeviceContext()->GSSetShader(geo->getShader(), nullptr, 0);
-	device->getDeviceContext()->PSSetShader(pixel->getGlowShader(), nullptr, 0);
-
-	//Set glow result texture to pixel shader
-	ID3D11ShaderResourceView* glowResultView = compute->getResultView();
-	device->getDeviceContext()->PSSetShaderResources(0, 1, &glowResultView);
-
-	//Set buffer
-	vSize = sizeof(float) * compute->getValuesPerVertex();
-	offset = 0;
-	tempBuffer = compute->getVertexBuffer();
-	device->getDeviceContext()->IASetVertexBuffers(0, 1, &tempBuffer, &vSize, &offset);
-
-	//Set inputLayout
-	device->getDeviceContext()->IASetInputLayout(vertex->getInputLayout());
-
-	//Map constant buffer
-	blendQ->mapConstBuffer(device->getDeviceContext());
-
-	//Set primitive type
-	device->getDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	//Set blend state
-	device->getDeviceContext()->OMSetBlendState(nullptr, blendValues, 0xffffffff);
-
-	//Draw BlendQuad
-	device->getDeviceContext()->Draw(compute->getNrOfVertex(), 0);
-
 }
 
-void SetViewport(ID3D11DeviceContext* dContext) {
-
+D3D11_VIEWPORT SetViewport(ID3D11DeviceContext* dContext) {
+	
 	D3D11_VIEWPORT vp;
 	vp.Width = WIDTH;
 	vp.Height = HEIGHT;
@@ -271,6 +290,8 @@ void SetViewport(ID3D11DeviceContext* dContext) {
 	vp.TopLeftX = 0;
 	vp.TopLeftY = 0;
 	dContext->RSSetViewports(1, &vp);
+
+	return vp;
 
 }
 

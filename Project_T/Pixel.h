@@ -9,7 +9,7 @@ class Pixel {
 private:
 
 	ID3D11PixelShader* shader;
-	ID3D11PixelShader* glowShader;
+	ID3D11PixelShader* colorShader;
 	ID3D11PixelShader* blendShader;
 
 public:
@@ -21,7 +21,7 @@ public:
 	
 	//Get
 	ID3D11PixelShader* getShader(void);
-	ID3D11PixelShader* getGlowShader(void);
+	ID3D11PixelShader* getColorShader(void);
 	ID3D11PixelShader* getBlendShader(void);
 
 };

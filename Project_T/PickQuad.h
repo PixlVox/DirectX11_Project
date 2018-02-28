@@ -2,17 +2,15 @@
 
 #include <d3d11.h>
 #include <DirectXMath.h>
-#include"WICTextureLoader.h"
+#include<DirectXCollision.h>
 #include<vector>
 
-class BlendQuad {
+class PickQuad {
 
 private:
 
 	ID3D11Buffer* vBuffer;
 	ID3D11Buffer* cBuffer;
-	ID3D11ShaderResourceView* windowView;
-	ID3D11BlendState* blendState;
 
 	struct Matrix {
 
@@ -21,32 +19,41 @@ private:
 
 	};
 
+	struct Vertex {
+
+		DirectX::XMFLOAT3 pos;
+		DirectX::XMFLOAT3 color;
+		DirectX::XMFLOAT3 normal;
+
+	};
+
 	Matrix mat;
+	std::vector<Vertex> quadData;
 
 	float scaling;
-	float offset;
+	DirectX::XMFLOAT3 offset;
+	DirectX::XMFLOAT3 color;
 
 	int nrOfVertices;
 	int valuesPerVertex;
 
 public:
-
-	BlendQuad();
-	~BlendQuad();
+	
+	PickQuad();
+	~PickQuad();
 
 	void createBuffer(ID3D11Device* device);
-	void createTexture(ID3D11Device* device);
 	void createConstBuffer(ID3D11Device* device);
-	void createBlendState(ID3D11Device* device);
 
-	void updateMatrix(DirectX::XMMATRIX view, DirectX::XMMATRIX proj,
+	void updateBuffer(ID3D11Device* device);
+	void updateMatrix(DirectX::XMMATRIX view, DirectX::XMMATRIX proj, 
 		long wWidth, long wHeight);
 	void mapConstBuffer(ID3D11DeviceContext* dContext);
 
+	bool intersect(DirectX::XMVECTOR mouseDir, DirectX::XMVECTOR camPos);
+
 	//Get
 	ID3D11Buffer* getBuffer(void);
-	ID3D11ShaderResourceView* getWindowView(void);
-	ID3D11BlendState* getBlendState(void);
 	int getNrOfVertices(void) const;
 	int getValuesPerVertex(void) const;
 

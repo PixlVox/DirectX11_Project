@@ -3,16 +3,18 @@
 Vertex::Vertex() {
 
 	this->shader = nullptr;
+	this->shaderColor = nullptr;
 	this->inputLayout = nullptr;
-	this->nrOfVertices = 0;
-	this->valuesPerVertex = 0;
+	this->inputLayoutColor = nullptr;
 
 }
 
 Vertex::~Vertex() {
 
 	this->shader->Release();
+	this->shaderColor->Release();
 	this->inputLayout->Release();
+	this->inputLayoutColor->Release();
 
 }
 
@@ -43,16 +45,30 @@ void Vertex::createShader(ID3D11Device* device) {
 
 	pVS->Release();
 
-}
+	//Create the vertex color shader
+	ID3DBlob* pVS_Color = nullptr;
+	D3DCompileFromFile(
+		L"VertexShader.hlsl",	//Filename
+		nullptr,				//Macros
+		nullptr,				//Include files
+		"VS_main_Color",		//Entry point
+		"vs_5_0",				//Model
+		0,						//Shader compile options
+		0,						//Effect compile options
+		&pVS_Color,					//Double pointer to Blob
+		nullptr);				//Pointer for error blob message
 
-void Vertex::createTriangleData(ID3D11Device* device) {
+	device->CreateVertexShader(pVS_Color->GetBufferPointer(), pVS_Color->GetBufferSize(), nullptr, &this->shaderColor);
 
-	//Load in values from bitmap
-	this->terrain.loadHeightMap();
+	D3D11_INPUT_ELEMENT_DESC inputDescColor[] = {
+	{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	};
 
-	//Create vertex & index buffer and store vertex info/index info
-	this->terrain.createBuffers(device);
-	this->valuesPerVertex = this->terrain.getValuesPerVertex();
+	device->CreateInputLayout(inputDescColor, ARRAYSIZE(inputDescColor), pVS_Color->GetBufferPointer(), pVS_Color->GetBufferSize(), &this->inputLayoutColor);
+
+	pVS_Color->Release();
 
 }
 
@@ -62,39 +78,9 @@ ID3D11VertexShader* Vertex::getShader(void) {
 
 }
 
-int Vertex::getNrOfVertex(void) const{
+ID3D11VertexShader* Vertex::getShaderColor(void) {
 
-	return this->terrain.getNrOfVertices();
-
-}
-
-int Vertex::getNrOfFaces(void) const {
-
-	return this->terrain.getNrOfFaces();
-
-}
-
-int Vertex::getValuesPerVertex(void) const{
-
-	return this->valuesPerVertex;
-
-}
-
-float Vertex::getHeightValueAtPos(float x, float z) {
-
-	return this->terrain.getHeightValueAtPos(x, z);
-
-}
-
-ID3D11Buffer* Vertex::getVertexBuffer(void) {
-
-	return this->terrain.getVertexBuffer();
-
-}
-
-ID3D11Buffer* Vertex::getIndexBuffer(void) {
-
-	return this->terrain.getIndexBuffer();
+	return this->shaderColor;
 
 }
 
@@ -104,44 +90,8 @@ ID3D11InputLayout* Vertex::getInputLayout(void) {
 
 }
 
-void Vertex::createTextures(ID3D11Device* device) {
+ID3D11InputLayout* Vertex::getInputLayoutColor(void) {
 
-	this->terrain.createTexture(device);
-
-}
-
-ID3D11ShaderResourceView* Vertex::getGrassView(void) {
-
-	return this->terrain.getGrassView();
-
-}
-
-ID3D11ShaderResourceView* Vertex::getStoneView(void) {
-
-	return this->terrain.getStoneView();
-
-}
-
-ID3D11SamplerState* Vertex::getSamplerState() {
-
-	return this->terrain.getSamplerState();
-
-}
-
-ID3D11BlendState* Vertex::getBlendState(void) {
-
-	return this->terrain.getBlendState();
-
-}
-
-void Vertex::createSamplerState(ID3D11Device* device) {
-
-	this->terrain.createSamplerState(device);
-
-}
-
-void Vertex::createBlendState(ID3D11Device* device) {
-
-	this->terrain.createBlendState(device);
+	return this->inputLayoutColor;
 
 }

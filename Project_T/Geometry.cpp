@@ -6,6 +6,7 @@ Geometry::Geometry() {
 	this->constBuffer = nullptr;
 
 	this->mat.wvp = DirectX::XMMatrixIdentity();
+	this->mat.world = DirectX::XMMatrixIdentity();
 
 }
 
@@ -17,6 +18,7 @@ Geometry::~Geometry() {
 
 void Geometry::createShader(ID3D11Device* device) {
 
+	//Create shader
 	ID3DBlob* pGS = nullptr;
 
 	D3DCompileFromFile(
@@ -66,6 +68,7 @@ void Geometry::updateMatrixValues(DirectX::XMMATRIX view, int wWidth, int wHeigh
 	//World offset pos by -1500 and scale by 400x
 	DirectX::XMMATRIX world = DirectX::XMMatrixIdentity();
 	world = DirectX::XMMatrixScaling(400, 400, 400) *  DirectX::XMMatrixTranslation(-1500.0f, -1500.0f, -1500.0f);
+	mat.world = world;
 
 	//Projection matrix
 	DirectX::XMMATRIX proj = DirectX::XMMatrixPerspectiveFovLH((DirectX::XM_PI * 0.45f), (wWidth / wHeight), 0.1f, 10000.0f);

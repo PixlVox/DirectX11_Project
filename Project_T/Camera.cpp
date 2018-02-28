@@ -59,12 +59,12 @@ void Camera::getInput(double time) {
 	//Update speed value
 	if (keyboardState[DIK_LSHIFT] & 0x80) {
 
-		this->speed = 15.0f * 0.005f;
+		this->speed = 150.0f * 0.005f;
 
 	}
 	else {
 
-		this->speed = 5.0f * 0.005f;
+		this->speed = 50.0f * 0.005f;
 
 	}
 

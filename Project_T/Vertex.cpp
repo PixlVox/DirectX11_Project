@@ -128,8 +128,20 @@ ID3D11SamplerState* Vertex::getSamplerState() {
 
 }
 
+ID3D11BlendState* Vertex::getBlendState(void) {
+
+	return this->terrain.getBlendState();
+
+}
+
 void Vertex::createSamplerState(ID3D11Device* device) {
 
 	this->terrain.createSamplerState(device);
+
+}
+
+void Vertex::createBlendState(ID3D11Device* device) {
+
+	this->terrain.createBlendState(device);
 
 }

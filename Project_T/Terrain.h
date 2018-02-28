@@ -29,6 +29,7 @@ private:
 
 	//Texture
 	ID3D11SamplerState* sampState;
+	ID3D11BlendState* blendState;
 	ID3D11ShaderResourceView* grassView;
 	ID3D11ShaderResourceView* stoneView;
 
@@ -45,6 +46,7 @@ public:
 	void createBuffers(ID3D11Device* device);
 	void createTexture(ID3D11Device* device);
 	void createSamplerState(ID3D11Device* device);
+	void createBlendState(ID3D11Device* device);
 
 	//Get
 	int getNrOfFaces(void) const;
@@ -56,7 +58,8 @@ public:
 	ID3D11Buffer* getIndexBuffer();
 	ID3D11ShaderResourceView* getGrassView(void);
 	ID3D11ShaderResourceView* getStoneView(void);
-	ID3D11SamplerState* getSamplerState();
+	ID3D11SamplerState* getSamplerState(void);
+	ID3D11BlendState* getBlendState(void);
 
 };
 

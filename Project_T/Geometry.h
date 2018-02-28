@@ -15,6 +15,7 @@ private:
 	struct Matrix {
 
 		DirectX::XMMATRIX wvp;
+		DirectX::XMMATRIX world;
 
 	};
 

@@ -19,6 +19,12 @@ Terrain::Terrain() {
 	this->vBuffer = nullptr;
 	this->iBuffer = nullptr;
 
+	this->sampState = nullptr;
+	this->blendState = nullptr;
+
+	this->grassView = nullptr;
+	this->stoneView = nullptr;
+
 }
 
 Terrain::~Terrain() {
@@ -94,7 +100,7 @@ bool Terrain::loadHeightMap() {
 
 		//Read data from greyscale image, only need value from one color channel
 		int k = 0;
-		float heightFactor = 75.0f;
+		float heightFactor = 50.0f;
 
 		//Read imageData into heigthMap array
 		for (int i = 0; i < hM.height; i++) {
@@ -413,8 +419,37 @@ void Terrain::createSamplerState(ID3D11Device* device) {
 
 }
 
+void Terrain::createBlendState(ID3D11Device* device) {
+
+	D3D11_BLEND_DESC blendDesc;
+	ZeroMemory(&blendDesc, sizeof(blendDesc));
+	blendDesc.RenderTarget[0].BlendEnable = true;
+	blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+	blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+	HRESULT hr = device->CreateBlendState(&blendDesc, &this->blendState);
+
+	if (FAILED(hr)) {
+
+		exit(-1);
+
+	}
+
+}
+
 ID3D11SamplerState* Terrain::getSamplerState() {
 
 	return this->sampState;
+
+}
+
+ID3D11BlendState* Terrain::getBlendState(void) {
+
+	return this->blendState;
 
 }

@@ -141,6 +141,8 @@ void ObjLoader::triangulate()
 	face += 2;
 }
 
+
+
 void ObjLoader::addToVec(int index, std::string value)
 {
 	switch (index)

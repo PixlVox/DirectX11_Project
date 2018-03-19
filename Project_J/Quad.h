@@ -10,6 +10,7 @@ private:
 	struct vertex
 	{
 		XMFLOAT3 pos;
+		XMFLOAT2 uvs;
 	};
 
 	vertex vertices[4];
@@ -26,6 +27,9 @@ private:
 
 	void createIndexBuffer();
 	void createVertexBuffer();
+
+	void reportObjects();
+
 
 public:
 	Quad();

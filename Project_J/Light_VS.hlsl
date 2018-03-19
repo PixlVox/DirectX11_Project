@@ -1,16 +1,22 @@
-cbuffer matrixes
+
+struct invs
 {
-	row_major float4x4 world;
-	row_major float4x4 view;
-	row_major float4x4 projection;
-	row_major float4x4 inverseWorld;
-	row_major float4x4 wvp;
-	row_major float4x4 vpLight;
+	float3 Position : POSITION;
+	float2 uvs : TEXCOORD;
 };
 
-
-float4 VS_Entry(in float3 Position : POSITION) : SV_Position
+struct vsout
 {
+	float4 position : SV_Position;
+	float2 uvs : TEXCOORD;
+};
 
-	return float4(Position, 1.0f);;
+vsout VS_Entry(in invs input)
+{
+	vsout output = (vsout)0;
+
+	output.position = float4(input.Position, 1.0f);
+	output.uvs = input.uvs;
+
+	return output;
 }

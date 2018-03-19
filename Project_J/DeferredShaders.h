@@ -33,8 +33,7 @@ private:
 	ID3D11GeometryShader * GeometryPassPlane_GS;
 
 	ID3D11PixelShader * GeometryPassCat_PS;
-	ID3D11PixelShader * GeometryPassCatPost_PS;
-	ID3D11VertexShader * GeometryPassCatPost_VS;
+	ID3D11PixelShader * QuadPostBlurr_PS;
 
 	//inputLayouts
 	ID3D11InputLayout* inp_PN_layout;
@@ -43,6 +42,8 @@ private:
 	ID3D11InputLayout* inp_PT_layout;
 
 	ID3D11InputLayout* inp_CatPT_layout;
+
+	void reportObjects();
 
 public:
 	DeferredShaders();
@@ -57,8 +58,7 @@ public:
 	ID3D11GeometryShader* getGeomtryPlaneGS() const;
 
 	ID3D11PixelShader* getGeometryCatPS() const;
-	ID3D11PixelShader* getGeometryCatPostPS() const;
-	ID3D11VertexShader * getGeometryCatPostVS() const;
+	ID3D11PixelShader* getQuadPostBlurrPS() const;
 
 	ID3D11VertexShader* getLightVS() const;
 	ID3D11PixelShader* getLightPS() const;

@@ -1,5 +1,13 @@
 #include"Terrain.h"
 
+void Terrain::reportObjects()
+{
+	HRESULT hr;
+	ID3D11Debug * DebugDevice;
+	hr = device->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(&DebugDevice));
+	DebugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+}
+
 Terrain::Terrain(ID3D11Device * device)
 {
 	this->device = device;
@@ -44,6 +52,7 @@ Terrain::~Terrain() {
 	}
 
 	this->sampState->Release();
+	this->reportObjects();
 }
 
 bool Terrain::loadHeightMap() {

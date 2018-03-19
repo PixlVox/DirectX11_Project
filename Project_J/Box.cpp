@@ -25,6 +25,7 @@ Box::~Box()
 
 	this->vBuffer->Release();
 	this->srv->Release();
+	this->reportObjects();
 }
 
 void Box::buildVertexVec()
@@ -131,6 +132,14 @@ void Box::transformMidPoint()
 void Box::update()
 {
 	this->m_world = this->m_scale * this->m_translation;
+}
+
+void Box::reportObjects()
+{
+	HRESULT hr;
+	ID3D11Debug * DebugDevice;
+	hr = device->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(&DebugDevice));
+	DebugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
 }
 
 void Box::initiate()

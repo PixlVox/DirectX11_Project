@@ -53,7 +53,7 @@ void Camera::getInput() {
 	this->mouse->GetDeviceState(sizeof(DIMOUSESTATE), &currentMouseState);
 
 	//Update speed value
-	this->speed = 5000.0f * 0.0005f;
+	this->speed = 5000.0f * 0.05f;
 	bool x = false, z = false;
 
 	//Keyboard input

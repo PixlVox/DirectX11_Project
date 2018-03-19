@@ -34,6 +34,8 @@ private:
 	void transformMidPoint();
 	void update();
 
+	void reportObjects();
+
 public:
 	Plane();
 	~Plane();

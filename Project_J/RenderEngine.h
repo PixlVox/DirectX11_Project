@@ -40,18 +40,21 @@ private:
 	const int RTV_VIEW_COUNT = 4;
 	const int SRV_VIEW_COUNT = 4;
 
+	int resolutionOffSet = 1000;
+
 	//book example
 	struct BoundingSphere
 	{
 		XMFLOAT3 centre;
 		float radius;
 	};
-	BoundingSphere bSphere;
 
+	BoundingSphere bSphere;
 	XMVECTOR lightPos;
 	XMVECTOR target;
 	XMVECTOR upVec;
 	XMVECTOR lightDir;
+	XMFLOAT4 blurrDir;
 
 	//Transformation matrixes
 	struct matrix_wvp
@@ -63,9 +66,8 @@ private:
 		XMMATRIX wvp;
 		XMMATRIX vpLight;
 	};
+
 	matrix_wvp m_wvp;
-
-
 	Quad quad;
 	ObjLoader objLoader;
 	Camera camera;
@@ -77,7 +79,6 @@ private:
 
 private:
 	//D3D11 data
-
 	IDXGISwapChain * swapChain;
 	ID3D11Device * device;
 	ID3D11DeviceContext * deviceContext;
@@ -86,6 +87,7 @@ private:
 	std::vector<ID3D11RenderTargetView*> RTViews;
 	std::vector<ID3D11ShaderResourceView*> SRViews;
 	ID3D11ShaderResourceView* null5[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
+	ID3D11ShaderResourceView* null4[4] = { nullptr, nullptr, nullptr, nullptr};
 	ID3D11ShaderResourceView* null2[2] = { nullptr, nullptr };
 	ID3D11ShaderResourceView* null1[1] = { nullptr };
 	ID3D11Buffer * nullBuffer = nullptr;
@@ -94,11 +96,15 @@ private:
 	std::vector<ID3D11ShaderResourceView*> sampBoxTexture;
 	std::vector<ID3D11ShaderResourceView*> sampTerrainTextures;
 
+	ID3D11Debug * DebugDevice;
 	ID3D11SamplerState* tempState;
 
 	//backbuffer
-
 	ID3D11RenderTargetView * back_buffer_view;
+	ID3D11RenderTargetView * RTVA;
+	ID3D11RenderTargetView * RTVB;
+	ID3D11ShaderResourceView * SRVA;
+	ID3D11ShaderResourceView * SRVB;
 
 	ID3D11RasterizerState * RSState;
 	ID3D11DepthStencilState * DSState;
@@ -106,11 +112,11 @@ private:
 	ID3D11DepthStencilView * depthStencilView; //1 is shadowview
 	D3D11_VIEWPORT view_port;
 
+	ID3D11Buffer * cb_blurr;
 	ID3D11Buffer * cb_lights;	
 	ID3D11Buffer * cb_matrixes;
 
 private:
-
 	void loaderTest();
 
 	//start-up functions
@@ -123,6 +129,9 @@ private:
 	void setupOMS();
 	void setMatrixes();
 	void setShadowStuff();
+	void setupBlurrTextures();
+
+	void reportObjects();
 
 
 	//Render functions
@@ -134,20 +143,22 @@ private:
 	void layoutTopology(int in_topology, int in_layout);
 	//void setDrawCall(int nr_verticies, int drawType);
 	void setQuad();
-public:
+	void setBlurrDirection(XMFLOAT2 in_dir);
 
+
+public:
 	RenderEngine(HWND wndHandle, HINSTANCE hInstance, int WIDTH, int HEIGHT);
 	~RenderEngine();
 
 	ObjLoader * getLoader();
 	void update();
-	void DrawPostProcess(int nr_verticies, int drawType);
 	void Draw(Terrain * in_terrain); // draw called object
 	void Draw(Box* in_box);
 	void Draw(Plane * in_plane);
 	void Draw(Catnip * in_cat);
 	void Draw(Drawable * in_object);
 	ID3D11Device* getDevice();
+	ID3D11DeviceContext* getContext();
 	void addBoxSRV(ID3D11ShaderResourceView * in_srv);
 	void addTerrainSRV(ID3D11ShaderResourceView ** in_srv, int size);
 	void clearRenderTargets();

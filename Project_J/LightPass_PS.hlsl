@@ -9,7 +9,7 @@ cbuffer lights
 	float4 lightPos;
 };
 
-//ACQUIRE TEXTURES
+//AQUIRE TEXTURES
 Texture2D NormalTexture : register(t0);
 Texture2D PositionTexture : register(t1);
 Texture2D TexToSample : register(t2);

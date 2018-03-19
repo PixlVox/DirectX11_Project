@@ -1,5 +1,13 @@
 #include "ShadowMap.h"
 
+void ShadowMap::reportObjects()
+{
+	HRESULT hr;
+	ID3D11Debug * DebugDevice;
+	hr = device->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(&DebugDevice));
+	DebugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+}
+
 ShadowMap::ShadowMap()
 {
 	this->device = nullptr;
@@ -29,6 +37,7 @@ ShadowMap::~ShadowMap()
 	this->shadowShader_PS->Release();
 	this->inp_Pos_layout->Release();
 	this->pointSample->Release();
+	this->reportObjects();
 }
 
 ID3D11SamplerState * ShadowMap::getPointSample()
@@ -92,8 +101,8 @@ void ShadowMap::createShadowDepthView()
 	//create 2D Texture
 	D3D11_TEXTURE2D_DESC dscTexture;
 	ZeroMemory(&dscTexture, sizeof(dscTexture));
-	dscTexture.Width = this->width;
-	dscTexture.Height = this->height;
+	dscTexture.Width = this->width + this->resolutionOffSet;
+	dscTexture.Height = this->height + this->resolutionOffSet;
 	dscTexture.Format = DXGI_FORMAT_R24G8_TYPELESS;
 	dscTexture.Usage = D3D11_USAGE_DEFAULT;
 	dscTexture.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;

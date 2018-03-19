@@ -45,6 +45,7 @@ private:
 	bool getSRV(std::wstring & in_texture_name);
 	void buildIndex();
 	void triangulate();
+
 public:
 	ObjLoader();
 	~ObjLoader();

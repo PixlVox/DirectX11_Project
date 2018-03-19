@@ -17,10 +17,12 @@ private:
 	ID3D11InputLayout* inp_Pos_layout;
 	ID3D11SamplerState* pointSample;
 
-
+	int resolutionOffSet = 0;
 	int width;
 	int height;
 	int layout;
+
+	void reportObjects();
 
 public:
 	ShadowMap();

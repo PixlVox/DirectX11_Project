@@ -1,4 +1,4 @@
-#include "RenderEngine.h"
+﻿#include "RenderEngine.h"
 
 RenderEngine::RenderEngine(HWND handle, HINSTANCE hInstance, int WIDHT, int HEIGHT)
 {
@@ -8,6 +8,8 @@ RenderEngine::RenderEngine(HWND handle, HINSTANCE hInstance, int WIDHT, int HEIG
 
 	this->WIDTH = WIDHT;
 	this->HEIGHT = HEIGHT;
+
+
 
 	//initiate vectors
 	ID3D11Texture2D* t_entry = nullptr;
@@ -61,8 +63,11 @@ RenderEngine::RenderEngine(HWND handle, HINSTANCE hInstance, int WIDHT, int HEIG
 	this->black[2] = 0.0f;
 	this->black[3] = 1.0f;
 
+	this->blurrDir = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+
 	this->setMatrixes();
 	this->setShadowStuff();
+	this->setupBlurrTextures();
 
 }
 
@@ -73,6 +78,7 @@ RenderEngine::~RenderEngine()
 	Release all com-objects
 
 	*/
+
 	this->swapChain->Release();
 	this->device->Release();
 	this->deviceContext->Release();
@@ -84,7 +90,12 @@ RenderEngine::~RenderEngine()
 	this->RSState->Release();
 	this->DSState->Release();
 	this->depthSRV->Release();
-	
+	this->cb_blurr->Release();
+	this->SRVA->Release();
+	this->SRVB->Release();
+	this->RTVA->Release();
+	this->RTVB->Release();
+
 	for (size_t i = 0; i < this->RTV_VIEW_COUNT; i++)
 	{
 		this->RTViews[i]->Release();
@@ -93,6 +104,8 @@ RenderEngine::~RenderEngine()
 	{
 		this->SRViews[i]->Release();
 	}
+
+	this->reportObjects();
 }
 
 void RenderEngine::loaderTest()
@@ -435,6 +448,24 @@ bool RenderEngine::createCBs()
 	{
 		return false;
 	}
+
+
+
+	ZeroMemory(&cb_desc, sizeof(cb_desc));
+	cb_desc.ByteWidth = sizeof(this->blurrDir);
+	cb_desc.Usage = D3D11_USAGE_DYNAMIC;
+	cb_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cb_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cb_desc.MiscFlags = 0;
+	cb_desc.StructureByteStride = 0;
+
+	ZeroMemory(&data, sizeof(data));
+	data.pSysMem = &this->blurrDir;
+	data.SysMemPitch = 0;
+	data.SysMemSlicePitch = 0;
+
+	hResult = this->device->CreateBuffer(&cb_desc, &data, &this->cb_blurr);
+
 	return true;
 }
 
@@ -462,10 +493,10 @@ void RenderEngine::setMatrixes()
 
 void RenderEngine::setShadowStuff()
 {
-	float farZz = 10000;
+	float farZz = 10000.0f;
 	//imagine a sphere incapsulating the scene 0, 0, 0 at centre and a radius of half farZ
 	this->bSphere.centre = XMFLOAT3(6000.0f, 0.0f, -2000.0f);
-	this->bSphere.radius = farZz;
+	this->bSphere.radius = 10000.0f;
 	XMFLOAT4 temp = this->lights.getLights().direction;
 	this->lightDir = XMLoadFloat4(&temp);
 
@@ -497,11 +528,86 @@ void RenderEngine::setShadowStuff()
 	float nearP = SphereCenterLS.x - farZ;
 	float farP = SphereCenterLS.x + farZ;
 
-	XMMATRIX orthoProjection = XMMatrixOrthographicOffCenterLH(left, right, bottom, top, this->nearZ, this->farZ);
+	XMMATRIX orthoProjection = XMMatrixOrthographicOffCenterLH(left, right, bottom, top, nearP, farP);
 
 	//calculate vpLight and bind to cb
 	XMMATRIX viewProjection = view * orthoProjection;
 	this->m_wvp.vpLight = viewProjection;
+}
+
+void RenderEngine::setupBlurrTextures()
+{
+	//render&shader views
+	D3D11_TEXTURE2D_DESC texture_desc;
+	D3D11_RENDER_TARGET_VIEW_DESC rtv_desc;
+	D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc;
+
+	ID3D11Texture2D* t_entry = nullptr;
+
+	//wnds msgs
+	HRESULT hr;
+
+	//create textures
+	ZeroMemory(&texture_desc, sizeof(texture_desc));
+	texture_desc.Width = this->WIDTH;
+	texture_desc.Height = this->HEIGHT;
+	texture_desc.MipLevels = 1;
+	texture_desc.ArraySize = 1; //one texture in the array
+	texture_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	texture_desc.SampleDesc.Count = 1;
+	texture_desc.Usage = D3D11_USAGE_DEFAULT;
+	texture_desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE; //Use as render targer and shader resource
+	texture_desc.CPUAccessFlags = 0;
+	texture_desc.MiscFlags = 0;
+
+	hr = this->device->CreateTexture2D(&texture_desc, nullptr, &t_entry);
+
+
+	ZeroMemory(&rtv_desc, sizeof(rtv_desc));
+	rtv_desc.Format = texture_desc.Format;
+	rtv_desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+	rtv_desc.Texture2D.MipSlice = 0;
+
+
+	hr = this->device->CreateRenderTargetView(t_entry, &rtv_desc, &this->RTVA);
+
+	//create shader resource views
+	ZeroMemory(&srv_desc, sizeof(srv_desc));
+	srv_desc.Format = texture_desc.Format;
+	srv_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srv_desc.Texture2D.MipLevels = 1;
+
+	hr = this->device->CreateShaderResourceView(t_entry, &srv_desc, &this->SRVA);
+
+	//newtexture
+	hr = this->device->CreateTexture2D(&texture_desc, nullptr, &t_entry);
+
+	ZeroMemory(&rtv_desc, sizeof(rtv_desc));
+	rtv_desc.Format = texture_desc.Format;
+	rtv_desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+	rtv_desc.Texture2D.MipSlice = 0;
+
+
+	hr = this->device->CreateRenderTargetView(t_entry, &rtv_desc, &this->RTVB);
+
+	//create shader resource views
+	ZeroMemory(&srv_desc, sizeof(srv_desc));
+	srv_desc.Format = texture_desc.Format;
+	srv_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srv_desc.Texture2D.MipLevels = 1;
+
+	hr = this->device->CreateShaderResourceView(t_entry, &srv_desc, &this->SRVB);
+
+	t_entry->Release();
+	
+
+}
+
+void RenderEngine::reportObjects()
+{
+	HRESULT hr;
+	hr = device->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(&DebugDevice));
+	DebugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
 }
 
 void RenderEngine::update()
@@ -568,6 +674,7 @@ void RenderEngine::mapCBs()
 	this->deviceContext->Map(this->cb_lights, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	memcpy(mappedResource.pData, &this->lights.getLights(), sizeof(this->lights.getLights()));
 	this->deviceContext->Unmap(this->cb_lights, 0);
+
 }
 
 void RenderEngine::layoutTopology(int in_topology, int in_layout)
@@ -648,6 +755,19 @@ void RenderEngine::setQuad()
 	
 }
 
+void RenderEngine::setBlurrDirection(XMFLOAT2 in_dir)
+{
+	this->blurrDir.x = in_dir.x;
+	this->blurrDir.y = in_dir.y;
+
+	D3D11_MAPPED_SUBRESOURCE mappedResource;
+	ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+	this->deviceContext->Map(this->cb_blurr, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+	memcpy(mappedResource.pData, &this->blurrDir, sizeof(this->blurrDir));
+	this->deviceContext->Unmap(this->cb_blurr, 0);
+
+}
+
 void RenderEngine::Draw(Terrain * in_terrain)
 {
 	this->updateMatrixes(in_terrain->getWorldMatrix());
@@ -682,6 +802,7 @@ void RenderEngine::Draw(Terrain * in_terrain)
 	this->deviceContext->GSSetConstantBuffers(0, 1, &this->nullBuffer);
 	this->tempState = nullptr;
 	this->deviceContext->PSSetSamplers(0, 1, &this->tempState);
+	this->deviceContext->GSSetConstantBuffers(0, 0, 0);
 }
 
 void RenderEngine::Draw(Box * in_box)
@@ -713,6 +834,7 @@ void RenderEngine::Draw(Box * in_box)
 	//reset
 	this->deviceContext->PSSetShaderResources(0, 1, this->null1);
 	this->deviceContext->GSSetConstantBuffers(0, 1, &this->nullBuffer);
+	this->deviceContext->GSSetConstantBuffers(0, 0, 0);
 }
 
 void RenderEngine::Draw(Plane * in_plane)
@@ -749,6 +871,7 @@ void RenderEngine::Draw(Plane * in_plane)
 	this->deviceContext->PSSetShaderResources(0, 1, this->null1);
 	this->tempState = nullptr;
 	this->deviceContext->PSSetSamplers(0, 1, &this->tempState);
+	this->deviceContext->GSSetConstantBuffers(0, 0, 0);
 }
 
 void RenderEngine::Draw(Catnip * in_cat)
@@ -777,29 +900,14 @@ void RenderEngine::Draw(Catnip * in_cat)
 	this->deviceContext->GSSetConstantBuffers(0, 1, &this->cb_matrixes);
 
 	//draw first pass
-	this->geometryPass(in_cat->getNrOfVertices(), drawType::Indexed);
 
-
-
-	//draw postprocess pass
-	//update shaders
-
-	//something is wrong and nothing happens.. i messed up. ***SOLVED*** SING SING SING
-	//oh how do you do young willy McBride do you mind if i set here down by your graveside and rest for awhile in the warm summer sun, ive been walking all day and im nearly done.
-
-	//remove cbs not used for post process
-	this->deviceContext->GSSetConstantBuffers(0, 1, &this->nullBuffer);
-
-	//bind new cbs
-	this->deviceContext->VSSetConstantBuffers(0, 1, &this->cb_matrixes);
-	this->layoutTopology(topology::TriangleList, layout::Cat);
-	this->updateShaders(this->deferred_shading.getGeometryCatPostVS(), nullptr, this->deferred_shading.getGeometryCatPostPS()); 
-	this->DrawPostProcess(in_cat->getNrOfVertices(), drawType::Indexed);
+	this->deviceContext->OMSetRenderTargets(this->RTViews.size(), RTViews.data(), this->depthStencilView);
+	this->deviceContext->DrawIndexed(in_cat->getNrOfVertices(), 0, 0);
 
 	//reset
 	this->deviceContext->PSSetShaderResources(0, 1, this->null1);
-	this->deviceContext->VSSetConstantBuffers(0, 1, &this->nullBuffer);
-
+	this->deviceContext->OMSetRenderTargets(0, 0, 0);
+	this->deviceContext->GSSetConstantBuffers(0, 0, &this->nullBuffer);
 
 
 }
@@ -839,6 +947,11 @@ ID3D11Device * RenderEngine::getDevice()
 	return this->device;
 }
 
+ID3D11DeviceContext * RenderEngine::getContext()
+{
+	return this->deviceContext;
+}
+
 void RenderEngine::addBoxSRV(ID3D11ShaderResourceView * in_srv)
 {
 	this->sampBoxTexture.push_back(in_srv);
@@ -874,7 +987,12 @@ void RenderEngine::lightPass()
 	ID3D11SamplerState * temp = this->sMap.getPointSample();
 	this->deviceContext->PSSetSamplers(0, 1, &temp);
 	//set backbuffer as new rendertarget
-	this->deviceContext->OMSetRenderTargets(1, &this->back_buffer_view, 0);
+
+	//***UNDO COMMENT TO BLURR***
+	this->deviceContext->OMSetRenderTargets(1, &this->RTVA, 0);
+
+	//***UNDO COMMENT TO REMOVE BLURR***
+	//this->deviceContext->OMSetRenderTargets(1, &this->back_buffer_view, 0);
 
 	//Set correct shaders
 	this->updateShaders(this->deferred_shading.getLightVS(), nullptr, this->deferred_shading.getLightPS());
@@ -885,12 +1003,50 @@ void RenderEngine::lightPass()
 	//draw vertices for fullscreen quad
 	this->setQuad();
 
+
 	//reset resourceviews, untie SRViews from the shader to be used as rendertargets next frame
 	this->deviceContext->PSSetShaderResources(0, this->SRViews.size(), this->null5);
 	this->deviceContext->PSSetConstantBuffers(0, 1, &this->nullBuffer);
-	this->deviceContext->PSSetSamplers(0, 1, &this->nullSampState);
-
 	this->deviceContext->OMSetRenderTargets(0, 0, 0);
+	this->deviceContext->PSSetSamplers(0, 0, &this->nullSampState);
+	
+	//***BLURRING***
+	/*
+	Write entire picture to texture A. 
+	Bind A as SRV, apply blurr - x axis and write to texture B.
+	Bind B as SRV, apply blurr - y axis and write to backbuffer.
+	*/
+	
+	//***UNDO COMMENT TO BLURR***
+	////update shaders for Blurring
+	this->updateShaders(this->deferred_shading.getLightVS(), nullptr, this->deferred_shading.getQuadPostBlurrPS());
+	this->deviceContext->PSSetConstantBuffers(0, 1, &this->cb_blurr);
+
+	//blurr picture X read from SRVA and write to RTVB
+	this->deviceContext->PSSetShaderResources(0, 1, &this->SRVA);
+	this->deviceContext->OMSetRenderTargets(1, &this->RTVB, 0);
+
+
+	//x axis
+	this->setBlurrDirection(XMFLOAT2(1.0f, 0.0f));
+
+	this->setQuad();
+
+	//read from SRVB and write to backbuffer.
+	this->deviceContext->OMSetRenderTargets(0, 0, 0);
+	this->deviceContext->PSSetShaderResources(0, 1, &this->SRVB);
+	this->deviceContext->OMSetRenderTargets(1, &this->back_buffer_view, 0);
+
+	//y axis
+	this->setBlurrDirection(XMFLOAT2(0.0f, 1.0f));
+
+	this->setQuad();
+
+	//reset resourceviews, untie SRViews from the shader to be used as rendertargets next frame
+	this->deviceContext->PSSetShaderResources(0, 1, this->null1);
+	this->deviceContext->PSSetConstantBuffers(0, 1, &this->nullBuffer);
+	this->deviceContext->OMSetRenderTargets(0, 0, 0);
+
 }
 
 void RenderEngine::shadowPass(int nr_verticies, int drawType)
@@ -921,28 +1077,6 @@ void RenderEngine::geometryPass(int nr_verticies, int drawType)
 	//set g-buffer textures as rendertargets
 
 	this->deviceContext->OMSetRenderTargets(this->RTViews.size(), this->RTViews.data(), this->depthStencilView);
-
-	//draw vertices
-	switch (drawType)
-	{
-	case drawType::Indexed:
-
-		this->deviceContext->DrawIndexed(nr_verticies, 0, 0);
-		break;
-	case drawType::NonIndexed:
-
-		this->deviceContext->Draw(nr_verticies, 0);
-		break;
-	default:
-		exit(-1);
-		break;
-	}
-	this->deviceContext->OMSetRenderTargets(0, 0, 0);
-}
-
-void RenderEngine::DrawPostProcess(int nr_verticies, int drawType)
-{
-	this->deviceContext->OMSetRenderTargets(1, &this->RTViews[2], nullptr);
 
 	//draw vertices
 	switch (drawType)

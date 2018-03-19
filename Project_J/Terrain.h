@@ -51,6 +51,7 @@ private:
 	ID3D11ShaderResourceView* grassView;
 	ID3D11ShaderResourceView* stoneView;
 
+	void reportObjects();
 
 
 public:

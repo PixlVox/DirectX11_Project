@@ -8,11 +8,13 @@
 const int WIDTH = 1024;
 const int HEIGHT = 1024;
 
+ID3D11Device * device;
 
 HWND InitWindow(HINSTANCE hInstance);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-
 bool compare(const Drawable* lhs, const Drawable* rhs);
+
+
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
 {
@@ -24,6 +26,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
 	RenderEngine Engine(wndHandle, hInstance, WIDTH, HEIGHT);
 	std::vector<Drawable*> objects;
+	device = Engine.getDevice();
 
 	//Heightmap
 	Box myBox;
@@ -110,6 +113,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
 	Catnip myCat(HEIGHT, WIDTH);
 	myCat.setDevice(Engine.getDevice());
+	myCat.setContext(Engine.getContext());
 	myCat.initiate();
 
 	Catnip::vertex verticess[4];
@@ -186,8 +190,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 		}
 	}
 
-
-
 }
 
 HWND InitWindow(HINSTANCE hInstance)
@@ -234,11 +236,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_DESTROY:
 		PostQuitMessage(0);
+
 		break;
 	}
 
 	return DefWindowProc(hWnd, message, wParam, lParam);
 }
+
 
 bool compare(const Drawable * lhs, const Drawable * rhs)
 {

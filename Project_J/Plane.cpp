@@ -21,6 +21,7 @@ Plane::~Plane()
 	this->vBuffer->Release();
 	this->iBuffer->Release();
 	this->sampState->Release();
+	this->reportObjects();
 }
 
 void Plane::createVertices()
@@ -208,6 +209,14 @@ void Plane::update()
 {
 	this->m_world = this->m_scale * this->m_rotation * this->m_translation;
 
+}
+
+void Plane::reportObjects()
+{
+	HRESULT hr;
+	ID3D11Debug * DebugDevice;
+	hr = device->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(&DebugDevice));
+	DebugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
 }
 
 int Plane::getTopology()

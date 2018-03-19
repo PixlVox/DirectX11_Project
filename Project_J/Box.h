@@ -48,6 +48,7 @@ private:
 	void findMidPoint();
 	void transformMidPoint();
 	void update();
+	void reportObjects();
 public:
 	Box();
 	~Box();

@@ -4,12 +4,16 @@ Quad::Quad()
 {
 	//top left 0
 	this->vertices[0].pos = { -1.0f, 1.0f, 0.0f };
+	this->vertices[0].uvs = {0.0f, 0.0f};
 	//top right 1
 	this->vertices[1].pos = { 1.0f, 1.0f, 0.0f };
+	this->vertices[1].uvs = { 1.0f, 0.0f };
 	//bottom left 2
 	this->vertices[2].pos = { -1.0f, -1.0f, 0.0f };
+	this->vertices[2].uvs = { 0.0f, 1.0f };
 	//bottom right 3
 	this->vertices[3].pos = { 1.0f, -1.0f, 0.0f };
+	this->vertices[3].uvs = { 1.0f, 1.0f };
 
 
 	//First triangle clockwise winding
@@ -91,6 +95,14 @@ void Quad::createVertexBuffer()
 
 	this->q_device->CreateBuffer(&vDesc, &vData, &this->vBuffer);
 
+}
+
+void Quad::reportObjects()
+{
+	HRESULT hr;
+	ID3D11Debug * DebugDevice;
+	hr = q_device->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(&DebugDevice));
+	DebugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
 }
 
 Quad::vertex* Quad::getVertices()

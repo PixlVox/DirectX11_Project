@@ -23,6 +23,10 @@ Catnip::Catnip(int in_height, int in_width)
 		this->index[i] = -1;
 	}
 
+
+	this->sampleDirectionBuffer.x = 0.0f;
+	this->sampleDirectionBuffer.y = 0.0f;
+
 	this->topology = topology::TriangleList;
 	this->layout = layout::PT;
 
@@ -33,6 +37,17 @@ Catnip::~Catnip()
 	this->catSRV->Release();
 	this->vBuffer->Release();
 	this->iBuffer->Release();
+	this->catCBbuffer->Release();
+	this->reportObjects();
+}
+
+
+void Catnip::reportObjects()
+{
+	HRESULT hr;
+	ID3D11Debug * DebugDevice;
+	hr = device->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(&DebugDevice));
+	DebugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
 }
 
 void Catnip::loadWICTexture()
@@ -43,10 +58,14 @@ void Catnip::loadWICTexture()
 	{
 		exit(-1);
 	}
+
+
+
 }
 
 void Catnip::createBuffers()
 {
+	HRESULT hr;
 	D3D11_BUFFER_DESC catDesc;
 	D3D11_SUBRESOURCE_DATA catData;
 
@@ -77,6 +96,24 @@ void Catnip::createBuffers()
 	catData.pSysMem = this->vertices;
 
 	this->device->CreateBuffer(&catDesc, &catData, &this->vBuffer);
+
+	ZeroMemory(&catDesc, sizeof(catDesc));
+
+
+	//Flags
+	catDesc.ByteWidth = sizeof(this->sampleDirectionBuffer);
+	catDesc.Usage = D3D11_USAGE_DYNAMIC;
+	catDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	catDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	catDesc.MiscFlags = 0;
+	catDesc.StructureByteStride = 0;
+
+	ZeroMemory(&catData, sizeof(catData));
+	catData.pSysMem = &this->sampleDirectionBuffer;
+	catData.SysMemPitch = 0;
+	catData.SysMemSlicePitch = 0;
+
+	hr = this->device->CreateBuffer(&catDesc, &catData, &this->catCBbuffer);
 
 
 }
@@ -131,6 +168,11 @@ void Catnip::setDevice(ID3D11Device * in_device)
 	this->device = in_device;
 }
 
+void Catnip::setContext(ID3D11DeviceContext * in_context)
+{
+	this->context = in_context;
+}
+
 void Catnip::setIndexAndVertices(int * in_index, vertex * in_vertices)
 {
 	this->vertices[0] = in_vertices[0];
@@ -154,6 +196,11 @@ ID3D11Buffer * Catnip::getVertexBuffer()
 ID3D11Buffer * Catnip::getIndexBuffer()
 {
 	return this->iBuffer;
+}
+
+ID3D11Buffer * Catnip::getCatCB()
+{
+	return this->catCBbuffer;
 }
 
 ID3D11ShaderResourceView * Catnip::getCatSRV() const
